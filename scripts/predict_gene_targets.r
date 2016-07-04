@@ -69,7 +69,7 @@ print(str(cg_mat))
 # the column that matches the CG data match column
 setkey(gi_tab, array_key)
 setkey(gi_array_tab, array_key)
-gi_tab = gi_tab[gi_array_tab[, c('array_key', config_params$Required_arguments$gi_to_cg_match_col), with = FALSE], nomatch = 0]
+gi_tab = gi_tab[gi_array_tab[, c('array_key', config_params$Required_arguments$gi_to_cg_match_col), with = FALSE], nomatch = 0, allow.cartesian = TRUE]
 print(gi_tab)
 gi_form = as.formula(sprintf('%s ~ %s', config_params$Required_arguments$gi_to_cg_match_col, 'query_key'))
 gi_mat = acast(data = gi_tab, formula = gi_form, fill = 0, fun.aggregate = mean, na.rm = TRUE, value.var = 'score')
