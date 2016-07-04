@@ -59,7 +59,7 @@ gi_array_tab = fread(config_params$Required_arguments$gi_array_info_table)
 setkeyv(cg_tab, c('Strain_ID', 'Barcode'))
 setkeyv(cg_row_tab, c('Strain_ID', 'Barcode'))
 cg_tab[, condition_key := sprintf('%s_%s', screen_name, expt_id)]
-cg_tab = cg_tab[cg_row_tab[, c('Strain_ID', 'Barcode', config_params$Required_arguments$cg_to_gi_match_col), with = FALSE], nomatch = 0]
+cg_tab = cg_tab[cg_row_tab[, c('Strain_ID', 'Barcode', config_params$Required_arguments$cg_to_gi_match_col), with = FALSE], nomatch = 0, allow.cartesian = TRUE]
 print(cg_tab)
 cg_form = as.formula(sprintf('%s ~ %s', config_params$Required_arguments$cg_to_gi_match_col, 'condition_key'))
 cg_mat = acast(data = cg_tab, formula = cg_form, fill = 0, fun.aggregate = mean, na.rm = TRUE, value.var = 'score')
