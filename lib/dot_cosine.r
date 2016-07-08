@@ -1,3 +1,7 @@
+#################################################################
+######  Copyright: Regents of the University of Minnesota  ######
+#################################################################
+
 # Here I define Raamesh's 'dotcosine' method for comparing chemical genetic to
 # genetic interaction profiles.  It normalizes the columns of the second matrix
 # but not those of the first.

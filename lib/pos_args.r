@@ -1,3 +1,7 @@
+#################################################################
+######  Copyright: Regents of the University of Minnesota  ######
+#################################################################
+
 library(optparse)
 
 format_positional_arguments = function(pos_args_list) {

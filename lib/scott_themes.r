@@ -1,3 +1,7 @@
+#################################################################
+######  Copyright: Regents of the University of Minnesota  ######
+#################################################################
+
 # Some custom themes for ggplot2
 library(grid)
 library(gridExtra)

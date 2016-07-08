@@ -1,5 +1,9 @@
 #!/usr/bin/env Rscript
 
+#################################################################
+######  Copyright: Regents of the University of Minnesota  ######
+#################################################################
+
 library(optparse)
 library(reshape2)
 library(data.table)

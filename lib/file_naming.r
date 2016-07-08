@@ -1,3 +1,7 @@
+#################################################################
+######  Copyright: Regents of the University of Minnesota  ######
+#################################################################
+
 set_prefix <- function(pre) {
     dir.create(pre, recursive = TRUE)
     pre

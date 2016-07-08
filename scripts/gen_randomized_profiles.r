@@ -1,4 +1,9 @@
 #!/usr/bin/env Rscript
+
+#################################################################
+######  Copyright: Regents of the University of Minnesota  ######
+#################################################################
+
 # In this script I will read in a table of chemical-genetic profiles
 # and create a large number (50,000) of random profiles.  For each
 # strain, I sample a random chemical-genetic interaction between that

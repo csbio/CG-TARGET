@@ -1,3 +1,7 @@
+#################################################################
+######  Copyright: Regents of the University of Minnesota  ######
+#################################################################
+
 # This script contains a function, get_go_drivers,
 # that will take in a target prediction matrix and
 # a go term matrix (it will make sure the dimension

@@ -1,4 +1,9 @@
 #!/usr/bin/env Rscript
+
+#################################################################
+######  Copyright: Regents of the University of Minnesota  ######
+#################################################################
+
 ## CHANGE THIS HEADING DOCUMENTATION!!!!!!!!
 #
 #

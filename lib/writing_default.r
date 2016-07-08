@@ -1,3 +1,7 @@
+#################################################################
+######  Copyright: Regents of the University of Minnesota  ######
+#################################################################
+
 ext_switch <- function(con_name) {
 
     switch(con_name,

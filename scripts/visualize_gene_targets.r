@@ -1,4 +1,9 @@
 #!/usr/bin/env Rscript
+
+#################################################################
+######  Copyright: Regents of the University of Minnesota  ######
+#################################################################
+
 # This script takes in a gene-target prediction table and
 # exports a clustergram of the gene-target prediction
 # scores. Row and column labels are specified using

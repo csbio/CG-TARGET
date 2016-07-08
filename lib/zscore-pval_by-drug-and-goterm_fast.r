@@ -1,3 +1,7 @@
+#################################################################
+######  Copyright: Regents of the University of Minnesota  ######
+#################################################################
+
 library(foreach)
 library(iterators)
 library(ggplot2)

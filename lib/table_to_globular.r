@@ -1,3 +1,7 @@
+#################################################################
+######  Copyright: Regents of the University of Minnesota  ######
+#################################################################
+
 # This file contains two functions to take a table of data
 # and write it back out to a new file in a globular, more
 # human-readable form.

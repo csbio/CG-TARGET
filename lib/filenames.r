@@ -1,3 +1,7 @@
+#################################################################
+######  Copyright: Regents of the University of Minnesota  ######
+#################################################################
+
 # The functions in this R file are to unify file naming across
 # all target prediction scripts.
 get_resampled_profile_folder = function(outdir) {

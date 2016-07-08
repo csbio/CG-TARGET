@@ -1,3 +1,7 @@
+#################################################################
+######  Copyright: Regents of the University of Minnesota  ######
+#################################################################
+
 TARGET_PATH = Sys.getenv('TARGET_PATH')
 source(file.path(TARGET_PATH, 'lib', 'cosine.r'))
 

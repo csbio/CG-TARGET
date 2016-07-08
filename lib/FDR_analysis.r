@@ -1,3 +1,7 @@
+#################################################################
+######  Copyright: Regents of the University of Minnesota  ######
+#################################################################
+
 library(data.table)
 library(Cairo)
 library(ggplot2)

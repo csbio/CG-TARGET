@@ -1,3 +1,7 @@
+#################################################################
+######  Copyright: Regents of the University of Minnesota  ######
+#################################################################
+
 # I will place at least one wrapper function into this script
 # It will wrap the functions I have written to perform
 # superfast enrichment tests

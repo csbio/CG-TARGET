@@ -1,3 +1,7 @@
+#################################################################
+######  Copyright: Regents of the University of Minnesota  ######
+#################################################################
+
 # This script will utilize the similarity functions in this folder (and perhaps other folders)
 # and compute empirical p values for the results they generate
 

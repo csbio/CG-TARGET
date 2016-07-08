@@ -1,4 +1,9 @@
 #!/usr/bin/env Rscript
+
+#################################################################
+######  Copyright: Regents of the University of Minnesota  ######
+#################################################################
+
 # In this script I will predict targets for the LDA-normalized dataset
 # I will use Raamesh's 'dotcosine' method that normalizes the SGA matrix but not the chemgen data
 # Also, I will only use the 'LightNet' genes from SGA, which have higher quality profiles (~1500)

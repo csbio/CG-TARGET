@@ -1,3 +1,7 @@
+#################################################################
+######  Copyright: Regents of the University of Minnesota  ######
+#################################################################
+
 library(reshape2)
 
 matrix_to_table = function(mat, row_id_tab, col_id_tab) {

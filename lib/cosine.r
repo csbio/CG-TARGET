@@ -1,6 +1,9 @@
 # This script generates a function to compute cosine similarity between
 # each column in one matrix with each column in another matrix
 
+#################################################################
+######  Copyright: Regents of the University of Minnesota  ######
+#################################################################
 
 cos_sim <- function(x, y, na.rm = FALSE) {
 

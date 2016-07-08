@@ -1,3 +1,7 @@
+#################################################################
+######  Copyright: Regents of the University of Minnesota  ######
+#################################################################
+
 # This file contains two functions that take a table
 # from one of my analyses (target predictions, GO enrichments)
 # and exports a table containing only rows that meet a certain
