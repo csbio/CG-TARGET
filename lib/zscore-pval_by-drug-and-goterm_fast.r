@@ -101,9 +101,14 @@ compute_zscores_pvals_by_go_and_drug <- function(target_prediction_mat, go_term_
                    sum(x <= control_go_pred_sum_col) / num_controls
             }, numeric(1))
         }
+        message(str(drug_subset_go_pred_sum_mat))
+        message(str(per_go_pval_mat))
         dimnames(per_go_pval_mat) <- dimnames(drug_subset_go_pred_sum_mat)
         per_go_pval_mat
     }
+
+    message('completed per-gene-set pval calculations')
+    message(str(per_go_pval_mat))
 
     names(per_go_pval_mats_by_control) <- control_types
 
