@@ -90,6 +90,7 @@ compute_zscores_pvals_by_go_and_drug <- function(target_prediction_mat, go_term_
         # meant that all my pvalues were off by the ratio of (# of samples) to (# of
         # go terms)
         num_controls <- dim(control_go_pred_sum_mat)[1]
+        per_go_pval_noexport = c('')
         per_go_pval_mat <- foreach(drug_subset_go_pred_sum_col = i_drug_subset_go_pred_sum_col, control_go_pred_sum_col = i_control_go_pred_sum_col, i = icount(), .combine = cbind, .maxcombine = 100000) %dopar% {
 
             message(sprintf('computing %s-derived per-gene-set pval for gene set %s/%s', control_type, i, n))
@@ -101,9 +102,13 @@ compute_zscores_pvals_by_go_and_drug <- function(target_prediction_mat, go_term_
             # each treatment prediction beat the control predictions.
             # Instead, I want the number of times the control predictions
             # match or beat the control conditions.
-            vapply(drug_subset_go_pred_sum_col, function(x) {
+            res = vapply(drug_subset_go_pred_sum_col, function(x) {
                    sum(x <= control_go_pred_sum_col) / num_controls
             }, numeric(1))
+            message(sprintf('%s/%s', i, n))
+            message(str(res))
+            gc()
+            res
         }
         message(str(drug_subset_go_pred_sum_mat))
         message(str(per_go_pval_mat))
