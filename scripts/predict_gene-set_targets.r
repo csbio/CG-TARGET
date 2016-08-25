@@ -28,13 +28,15 @@ library(doParallel)
 # Source in libraries for gene set target prediction
 TARGET_PATH = Sys.getenv('TARGET_PATH')
 source(file.path(TARGET_PATH, 'lib/go_drivers.r'))
-source(file.path(TARGET_PATH, 'lib/go_matrices.r'))
 source(file.path(TARGET_PATH, 'lib/file_naming.r'))
 source(file.path(TARGET_PATH, 'lib/top_table.r'))
 source(file.path(TARGET_PATH, 'lib/table_to_globular.r'))
 source(file.path(TARGET_PATH, 'lib/zscore-pval_by-drug-and-goterm_fast.r'))
 source(file.path(TARGET_PATH, 'lib/pos_args.r'))
 source(file.path(TARGET_PATH, 'lib/filenames.r'))
+
+
+# print(sessionInfo())
 
 # Some function definitions...
 initialize_parallel = function(ncores) {
@@ -52,23 +54,41 @@ initialize_parallel = function(ncores) {
     }
 }
 
-save_data = function(x, save_points, folder) {
+save_data_factory = function(folder) {
+    # This function returns a function that saves data in a
+    # folder that is specified at the time of function creation.
+    # The resulting function only requires a "save_point"
+    # argument, which is x.
     
-    if (x %in% save_points) {
+    force(folder)
+    fun = function(x) {
         outfile = file.path(folder, sprintf('save_point_%s.RData', x))
-        message(sprintf('saving data at save point %s...', x))
+        message(sprintf('\nsaving data at save point %s...', x))
+        message(sprintf('location: %s\n', outfile))
         save.image(outfile)
         message('done')
     }
+    return(fun)
 }
 
-load_data = function(x, folder) {
 
-    infile = file.path(folder, sprintf('save_point_%s.RData', x))
-    message(sprintf('loading data from save point %s...', x))
-    load(infile)
-    message('done')
+load_data_factory = function(folder) {
+    # This function returns a function that saves loads data
+    # from a folder that is specified at the time of function
+    # creation. The resulting function only requires a
+    # "load_point" argument, which is x.
+    
+    force(folder)
+    fun = function(x) {
+        infile = file.path(folder, sprintf('save_point_%s.RData', x))
+        message(sprintf('\nloading data from save point %s...', x))
+        message(sprintf('location: %s\n', infile))
+        load(infile, envir = globalenv())
+        message('done')
+    }
+    return(fun)
 }
+
 
 # Parse the arguments, as these need to be read regardless of which starting
 # point in the code the user wants to start the analysis from.
@@ -114,10 +134,13 @@ close(config_f)
 
 # Get the output folder for intermediate data
 # (and create if it doesn't exist!)
-output_table_folder = get_gene_set_target_prediction_folder(output_folder)
+output_table_folder = get_gene_set_target_prediction_folder(config_params$Required_arguments$output_folder)
 intermed_folder = file.path(output_table_folder, 'intermediate_data')
 dir.create(intermed_folder, recursive = TRUE)
 
+# Generate the save_data and load_data functions
+save_data = save_data_factory(intermed_folder)
+load_data = load_data_factory(intermed_folder)
 
 # If the user does not specify a load point (or explicitly wants
 # to load from the beginning), then run the code from the
@@ -258,6 +281,27 @@ if (load_point < 1) {
     
     print(sample_table)
     print(control_map)
+   
+    ############ Here, convert all the tables into matrices and them remove
+    ############ before any workspaces can be saved (lots of unnecessary
+    ############ space would be taken up!
+
+    ###### Smash some data around
+    gene_prediction_mat = acast(gene_prediction_tab, screen_name + expt_id ~ query_key, value.var = 'score')
+    rand_gene_prediction_mat = acast(rand_gene_prediction_tab, screen_name + expt_id ~ query_key, value.var = 'score')
+    all_prediction_mat = rbind(gene_prediction_mat, rand_gene_prediction_mat)
+    #all_prediction_tab = rbind(gene_prediction_tab, rand_gene_prediction_tab)
+    #all_prediction_mat = acast(all_prediction_tab, screen_name + expt_id ~ query_key, value.var = 'score')
+
+    ###### Line up the control vectors to the matrix with all predictions
+    rand_control_map = rep('rand-by-strain', dim(unique(rand_gene_prediction_tab[, list(screen_name, expt_id)]))[1])
+    names(rand_control_map) = unique(rand_gene_prediction_tab[, sprintf('%s_%s', screen_name, expt_id)])
+
+    ###### Remove the large tables that do not need to exist anymore!
+    rm(gene_prediction_tab)
+    rm(rand_gene_prediction_tab)
+
+    gc()
 
 }
 
@@ -266,10 +310,10 @@ if (load_point < 1) {
 # If the user wants to load the data previously saved at "save point 1,"
 # then the previously saved R environment is loaded here.
 if (1 %in% save_points) {
-    save.image(save_1_filename)
+    save_data(1)
 }
 if (load_point == 1) {
-    load(save_1_filename)
+    load_data(1)
 }
 
 # If the user-specified load point is less than 2, then this
@@ -278,13 +322,6 @@ if (load_point == 1) {
 # to completion!)
 if (load_point < 2) {
 
-    ################### Smashing some data around
-    all_prediction_tab = rbind(gene_prediction_tab, rand_gene_prediction_tab)
-    all_prediction_mat = acast(all_prediction_tab, screen_name + expt_id ~ query_key, value.var = 'score')
-
-    ################### Line up the control vectors to the matrix with all predictions
-    rand_control_map = rep('rand-by-strain', dim(unique(rand_gene_prediction_tab[, list(screen_name, expt_id)]))[1])
-    names(rand_control_map) = unique(rand_gene_prediction_tab[, sprintf('%s_%s', screen_name, expt_id)])
 
     # Check for real and random conditions overlapping (should NEVER happen)
     print(control_map[1:10])
@@ -439,8 +476,12 @@ if (load_point < 2) {
 
     #     controls <- sample_types[sample_types != treatment_sample_type]
 
+    # Perform some subsetting to only include sample types to make
+    # predictions for
     condition_subset_gene_set_pred_sum_mat <- condition_gene_set_pred_sum_mat[sample_type_split_vec %in% sample_types_to_predict_for, ]
     target_prediction_subset_mat <- target_prediction_mat[sample_type_split_vec %in% sample_types_to_predict_for, ]
+    condition_subset_gene_score_means = condition_gene_score_means[sample_type_split_vec %in% sample_types_to_predict_for]
+    condition_subset_gene_score_stdevs = condition_gene_score_stdevs[sample_type_split_vec %in% sample_types_to_predict_for]
 
     # Change order of controls so that the first control type has the
     # largest number of conditions. If they tie, order() will not change
@@ -481,10 +522,10 @@ if (load_point < 2) {
 # If the user wants to load the data previously saved at "save point 2,"
 # then the previously saved R environment is loaded here.
 if (2 %in% save_points) {
-    save.image(save_2_filename)
+    save_data(2)
 }
 if (load_point == 2) {
-    load(save_2_filename)
+    load_data(2)
 }
 
 # At this point, I need to initialize the parallelization if it is to be
@@ -509,10 +550,10 @@ if (load_point < 3) {
 # If the user wants to load the data previously saved at "save point 3,"
 # then the previously saved R environment is loaded here.
 if (3 %in% save_points) {
-    save.image(save_3_filename)
+    save_data(3)
 }
 if (load_point == 3) {
-    load(save_3_filename)
+    load_data(3)
 }
 
 ########### Get p-values and z-scores for per-condition evaluations
@@ -526,18 +567,18 @@ if (load_point < 4) {
     # Settle the per-condition randomization question
     num_per_condition_rand = config_params$Required_arguments$`num_per-condition_randomizations`
 
-    # Set the seed (required input from the user)
-    seed = as.numeric(config_params$Required_arguments$`per-condition_randomization_seed`)
+    # Get the seed (required input from the user)
+    # Seed isn't set until right before randomizations
+    # are performed, inside the function below.
+    seed = config_params$Required_arguments$`per-condition_randomization_seed`
     print(seed)
-    if (is.numeric(seed)){
-        set.seed(seed)
-    } else if (seed == 'rand') {
-        seed
-    } else {
+    if (seed == 'rand') {
+        seed = NULL
+    } else if (!is.numeric(seed)) {
         stop('specified per-condition_randomization_seed is neither numeric nor "rand"')
     }
-    
-    per_condition_pvals_zscores = compute_per_condition_pvals_zscores(target_prediction_subset_mat, condition_subset_gene_set_pred_sum_mat, num_per_condition_rand, gene_set_sizes, condition_gene_score_means, condition_gene_score_stdevs, sample_type_split_vec, types_to_predict_for)
+        
+    per_condition_pvals_zscores = compute_per_condition_pvals_zscores_2(target_prediction_subset_mat, condition_subset_gene_set_pred_sum_mat, gene_set_matrix, num_per_condition_rand, gene_set_sizes, condition_subset_gene_score_means, condition_subset_gene_score_stdevs, seed)
 
     # Combine results into a final list and remove the individual lists
     all_pvals_zscores = list(per_gene_set = per_gene_set_pvals_zscores, per_condition = per_condition_pvals_zscores)
@@ -549,10 +590,10 @@ if (load_point < 4) {
 
 # Save/load point 4!
 if (4 %in% save_points) {
-    save.image(save_4_filename)
+    save_data(4)
 }
 if (load_point == 4) {
-    load(save_4_filename)
+    load_data(4)
 }
 
 # Now, get all versions of p values and zscores!
@@ -579,15 +620,15 @@ if (load_point < 5) {
     print(str(all_pvals_zscores))
     print(controls)
 
-    print(which(is.na(all_pvals_zscores[['per_gene_set']][[controls[1]]][['pval']]), arr.ind = true))
+    print(which(is.na(all_pvals_zscores[['per_gene_set']][[controls[1]]][['pval']]), arr.ind = TRUE))
     print(sum(is.na(all_pvals_zscores[['per_gene_set']][[controls[1]]][['pval']])))
 
-    print(which(is.na(all_pvals_zscores[['per_gene_set']][[controls[1]]][['zscore']]), arr.ind = true))
+    print(which(is.na(all_pvals_zscores[['per_gene_set']][[controls[1]]][['zscore']]), arr.ind = TRUE))
     print(sum(is.na(all_pvals_zscores[['per_gene_set']][[controls[1]]][['zscore']])))
 
-    bad_go_term_inds = unique(which(is.na(all_pvals_zscores[['per_gene_set']][[controls[1]]][['zscore']]), arr.ind = true)[, 2])
+    bad_go_term_inds = unique(which(is.na(all_pvals_zscores[['per_gene_set']][[controls[1]]][['zscore']]), arr.ind = TRUE)[, 2])
     print(str(gene_set_matrix[, bad_go_term_inds]))
-    print(colsums(gene_set_matrix[, bad_go_term_inds]))
+    print(colSums(gene_set_matrix[, bad_go_term_inds]))
 
     #print(which(is.na(all_pvals_zscores[['per_gene_set']][[controls[2]]][['pval']])))
     #print(which(is.na(all_pvals_zscores[['per_gene_set']][[controls[2]]][['zscore']])))
@@ -627,10 +668,10 @@ if (load_point < 5) {
 
 # Save/load point 5!
 if (5 %in% save_points) {
-    save.image(save_5_filename)
+    save_data(5)
 }
 if (load_point == 5) {
-    load(save_5_filename)
+    load_data(5)
 }
 
 ########### Compute and assemble the drivers of the gene-set predictions
@@ -654,10 +695,10 @@ if (load_point < 6) {
 
 # Save/load point 6!
 if (6 %in% save_points) {
-    save.image(save_6_filename)
+    save_data(6)
 }
 if (load_point == 6) {
-    load(save_6_filename)
+    load_data(6)
 }
 
 ## Shut down MPI cluster, if it exists
@@ -809,10 +850,10 @@ if (load_point < 7) {
 
 # Save/load point 7! This would be purely for debugging, I think.
 if (7 %in% save_points) {
-    save.image(save_7_filename)
+    save_data(7)
 }
 if (load_point == 7) {
-    load(save_7_filename)
+    load_data(7)
 }
 
 
