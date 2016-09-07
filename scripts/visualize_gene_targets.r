@@ -77,7 +77,7 @@ print(query_info_tab)
 if (opt$rand) {
     # If this for the resampled profiles, which do not have an accompanying
     # sample table, then just make one on the fly!
-    sample_tab = tab[, list(screen_name, expt_id)]
+    sample_tab = unique(tab[, list(screen_name, expt_id)])
 } else {
     # Otherwise read in the real sample table
     sample_tab = fread(config_params$Required_arguments$cg_col_info_table, header = TRUE, colClasses = 'character')
