@@ -6,7 +6,6 @@
 # of the requested genetic interaction dataset and, if
 # necessary, download said datasets from the specified
 # location.
-#library(R.utils)
 library(digest)
 
 # Source in the function that generates an md5 checksum for
@@ -100,20 +99,6 @@ get_gi_info = function(gi_name, software_dir) {
         }
     }
 
-    #if (!all(file.exists(c(table_filename, array_filename, query_filename)))) {
-    #    # If the data files are not present, then get them!
-    #    # Gotta remove any existing directory with that name so the
-    #    # new tarfile can be unzipped (R's internal method does not
-    #    # appear to overwrite very well).
-    #    if(dir.exists(dataset_dir)) {
-    #        unlink(dataset_dir, recursive = TRUE)
-    #        #file.remove(normalizePath(list.files(dataset_dir, full.names = TRUE)))
-    #        #file.remove(dataset_dir)
-    #    }
-    #    download_gi_dataset(gi_name, gi_data_dir, dataset_tab, dataset_tab_filename)
-    #    return(list(gi_tab = table_filename, gi_array_tab = array_filename, gi_query_tab = query_filename))
-    #}
-
     # Get information for important dataset columns
     array_sys_name_col = dataset_tab[gi_name][['row_info_tab_sys_name_col']]
     query_genename_col = dataset_tab[gi_name][['col_info_tab_genename_col']]
@@ -161,11 +146,6 @@ download_gi_dataset = function(gi_name, gi_data_dir, dataset_tab, dataset_tab_fi
 
     download.file(download_loc_userpwd, destfile = dest_file)
 
-    # downloadFile doesn't work for some reason now that I have
-    # proper password authentication
-    #downloadFile(url = download_location, filename = dest_file, username = username, password = password)
-
-    ####### DO NOW
     # Provide some way to handle if the downloaded file cannot be untarred
     # (remove the temporary file, etc)
     untar_res = try(untar(dest_file, exdir = gi_data_dir, tar = 'internal'))
@@ -274,11 +254,4 @@ download_gene_set_table = function(gi_name, gene_set_name, gene_set_gi_dir, gene
     
     download.file(download_loc_userpwd, destfile = gene_set_gi_filename)
     
-    #downloadFile(url = download_location, filename = gene_set_gi_filename, username = username, password = password, skip = FALSE)
-    
-    
-    #untar(dest_file, exdir = gi_data_dir, tar = 'internal')
-    #gunzip(dest_file)
-    #file.remove(dest_file)
-
 }
