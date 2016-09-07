@@ -43,85 +43,166 @@ best_score_per_col_group = function(mat, group_vec) {
     return(list(best_scores = final_mat, best_queries = which_mat))
 }
 
-compute_per_gene_set_pvals_zscores = function(drug_subset_go_pred_sum_mat, control_go_pred_sum_mat_list, control_go_pred_sum_means_list, control_go_pred_sum_stdevs_list, control_types) {
+compute_per_gene_set_pvals_zscores = function(condition_x_gene_set_pred_sum_mat, control_condition_x_gene_set_pred_sum_mat_list, control_condition_x_gene_set_pred_sum_means_list, control_condition_x_gene_set_pred_sum_stdevs_list, control_types) {
 
-    # Get p values computed using different control types
+    # Get some dimensions
+    num_control_types = length(control_types)
+    num_conditions = dim(condition_x_gene_set_pred_sum_mat)[1]
+    num_gene_sets = dim(condition_x_gene_set_pred_sum_mat)[2]
+
+    ##### P-VALUES #####
+    # Get p-values computed using different control types
     # as null distributions
-    # Note: I compute the pvals for ALL conditions, not just
-    # the treatments
-    per_go_pval_mats_by_control <- foreach(control_go_pred_sum_mat = control_go_pred_sum_mat_list, control_type = control_types) %do% {
-        i_control_go_pred_sum_col <- iter(control_go_pred_sum_mat, by = 'col')
-        i_drug_subset_go_pred_sum_col <- iter(drug_subset_go_pred_sum_mat, by = 'col')
+    # Note: I compute the pvals for ALL conditions that I
+    # have already specified I want to predict targets for,
+    # not just for the treatments
+    
 
-        n = dim(control_go_pred_sum_mat)[2]
+    # Assemble output data structure!
+    per_gene_set_pval_mats_by_control = replicate(num_control_types, 
+                                                  matrix(numeric(num_conditions * num_gene_sets),
+                                                         nrow = num_conditions,
+                                                         dimnames = dimnames(condition_x_gene_set_pred_sum_mat)),
+                                                  simplify = FALSE)
+    names(per_gene_set_pval_mats_by_control) = control_types
 
-        # Note: previous bug here - I used dim(control_go_pred_sum_mat)[2], which
-        # meant that all my pvalues were off by the ratio of (# of samples) to (# of
-        # go terms)
-        num_controls <- dim(control_go_pred_sum_mat)[1]
-        per_go_pval_noexport = c('drug_gene_score_means', 'drug_gene_score_stdevs', 'go_term_sizes',
-                                 'drug_subset_go_pred_sum_mat', 'target_prediction_subset_mat',
-                                 'control_go_pred_sum_mat_list', 'control_go_pred_sum_stdevs_list',
-                                 'control_go_pred_sum_mat')
-        per_go_pval_mat <- foreach(drug_subset_go_pred_sum_col = i_drug_subset_go_pred_sum_col, control_go_pred_sum_col = i_control_go_pred_sum_col, i = icount(), .combine = cbind, .maxcombine = 100000, .noexport = per_go_pval_noexport) %do% {
+    # Yes, this is a for loop in R. Satan's getting a bit chilled right now...
+    for (i in 1:num_control_types) {
 
-            message(sprintf('computing %s-derived per-gene-set pval for gene set %s/%s', control_type, i, n))
+        for (j in 1:num_gene_sets) {
+            
+            cat(sprintf('computing %s-derived per-gene-set pval for gene set %s/%s\r', control_types[i], j, num_gene_sets))
+            # message(sprintf('computing %s-derived per-gene-set pval for gene set %s/%s', control_types[i], j, num_gene_sets))
+            per_gene_set_pval_mats_by_control[[i]][, j] = empirical_pval_greater(condition_x_gene_set_pred_sum_mat[, j],
+                                                                            control_condition_x_gene_set_pred_sum_mat_list[[i]][, j])
 
-            drug_subset_go_pred_sum_col <- as.vector(drug_subset_go_pred_sum_col)
-            control_go_pred_sum_col <- as.vector(control_go_pred_sum_col)
-
-            # The other bug I had was that I counted the number of times
-            # each treatment prediction beat the control predictions.
-            # Instead, I want the number of times the control predictions
-            # match or beat the control conditions.
-            res = empirical_pval_greater(drug_subset_go_pred_sum_col, control_go_pred_sum_col)
-            #res = vapply(drug_subset_go_pred_sum_col, function(x) {
-            #       sum(x <= control_go_pred_sum_col) / num_controls
-            #}, numeric(1))
-            message(sprintf('%s/%s', i, n))
-            message(str(res))
-            #gc()
-            res
         }
-        message(str(drug_subset_go_pred_sum_mat))
-        message(str(per_go_pval_mat))
-        dimnames(per_go_pval_mat) <- dimnames(drug_subset_go_pred_sum_mat)
-        per_go_pval_mat
+        cat('\n\n')
+
     }
-
+    
     message('completed per-gene-set pval calculations')
-    message(str(per_go_pval_mat))
+    message(str(per_gene_set_pval_mats_by_control))
 
-    names(per_go_pval_mats_by_control) <- control_types
+    ##### Z-SCORES #####
+    # Get z-scores computed using different control types
+    # as null distributions
+    
+    # Assemble output data structure!
+    per_gene_set_zscore_mats_by_control = replicate(num_control_types, 
+                                                    matrix(numeric(num_conditions * num_gene_sets),
+                                                           nrow = num_conditions,
+                                                           dimnames = dimnames(condition_x_gene_set_pred_sum_mat)),
+                                                    simplify = FALSE)
+    names(per_gene_set_zscore_mats_by_control) = control_types
+
+    # Yes, this is a for loop in R. Satan's getting a bit chilled right now...
+    for (i in 1:num_control_types) {
+
+        for (j in 1:num_conditions) {
+            
+            cat(sprintf('computing %s-derived per-gene-set zscore for condition %s/%s\r', control_types[i], j, num_conditions))
+            #message(sprintf('computing %s-derived per-gene-set zscore for condition %s/%s', control_types[i], j, num_conditions))
+            per_gene_set_zscore_mats_by_control[[i]][j, ] = 
+                    (condition_x_gene_set_pred_sum_mat[j, ] - control_condition_x_gene_set_pred_sum_means_list[[i]]) /
+                     control_condition_x_gene_set_pred_sum_stdevs_list[[i]]
+            
+            #message(sprintf('computing %s-derived per-gene-set pval for gene set %s/%s', control_types[i], j, num_gene_sets))
+            #per_gene_set_pval_mats_by_control[[i]][, j] = empirical_pval_greater(condition_x_gene_set_pred_sum_mat[, j],
+            #                                                                control_condition_x_gene_set_pred_sum_mat_list[[i]][, j])
+        }
+        cat('\n\n')
+
+    }
+    
+    
+    ## Get p values computed using different control types
+    ## as null distributions
+    ## Note: I compute the pvals for ALL conditions that I
+    ## specify I want to predict targets for, not just for
+    ## the treatments
+    #per_go_pval_mats_by_control <- foreach(control_go_pred_sum_mat = control_go_pred_sum_mat_list, control_type = control_types) %do% {
+    #    i_control_go_pred_sum_col <- iter(control_go_pred_sum_mat, by = 'col')
+    #    i_drug_subset_go_pred_sum_col <- iter(drug_subset_go_pred_sum_mat, by = 'col')
+
+    #    n = dim(control_go_pred_sum_mat)[2]
+
+    #    # Note: previous bug here - I used dim(control_go_pred_sum_mat)[2], which
+    #    # meant that all my pvalues were off by the ratio of (# of samples) to (# of
+    #    # go terms)
+    #    num_controls <- dim(control_go_pred_sum_mat)[1]
+    #    per_go_pval_noexport = c('drug_gene_score_means', 'drug_gene_score_stdevs', 'go_term_sizes',
+    #                             'drug_subset_go_pred_sum_mat', 'target_prediction_subset_mat',
+    #                             'control_go_pred_sum_mat_list', 'control_go_pred_sum_stdevs_list',
+    #                             'control_go_pred_sum_mat')
+    #    per_go_pval_mat <- foreach(drug_subset_go_pred_sum_col = i_drug_subset_go_pred_sum_col, control_go_pred_sum_col = i_control_go_pred_sum_col, i = icount(), .combine = cbind, .maxcombine = 100000, .noexport = per_go_pval_noexport) %do% {
+
+    #        message(sprintf('computing %s-derived per-gene-set pval for gene set %s/%s', control_type, i, n))
+
+    #        drug_subset_go_pred_sum_col <- as.vector(drug_subset_go_pred_sum_col)
+    #        control_go_pred_sum_col <- as.vector(control_go_pred_sum_col)
+
+    #        # The other bug I had was that I counted the number of times
+    #        # each treatment prediction beat the control predictions.
+    #        # Instead, I want the number of times the control predictions
+    #        # match or beat the control conditions.
+    #        res = empirical_pval_greater(drug_subset_go_pred_sum_col, control_go_pred_sum_col)
+    #        #res = vapply(drug_subset_go_pred_sum_col, function(x) {
+    #        #       sum(x <= control_go_pred_sum_col) / num_controls
+    #        #}, numeric(1))
+    #        message(sprintf('%s/%s', i, n))
+    #        message(str(res))
+    #        #gc()
+    #        res
+    #    }
+    #    message(str(drug_subset_go_pred_sum_mat))
+    #    message(str(per_go_pval_mat))
+    #    dimnames(per_go_pval_mat) <- dimnames(drug_subset_go_pred_sum_mat)
+    #    per_go_pval_mat
+    #}
+    #
+    #message('completed per-gene-set pval calculations')
+    #message(str(per_gene_set_pval_mats_by_control))
+    #
+    # names(per_go_pval_mats_by_control) <- control_types
 
     # Get per-gene-set zscore calculations using different control
     # types as null distributions
-    per_go_zscore_mats_by_control <- foreach(control_go_pred_sum_means = control_go_pred_sum_means_list, control_go_pred_sum_stdevs = control_go_pred_sum_stdevs_list, control_type = control_types) %do% {
-        i_drug_subset_go_pred_sum_row <- iter(drug_subset_go_pred_sum_mat, by = 'row')
+    #per_go_zscore_mats_by_control <- foreach(control_go_pred_sum_means = control_go_pred_sum_means_list, control_go_pred_sum_stdevs = control_go_pred_sum_stdevs_list, control_type = control_types) %do% {
+    #    i_drug_subset_go_pred_sum_row <- iter(drug_subset_go_pred_sum_mat, by = 'row')
 
-        n = dim(drug_subset_go_pred_sum_mat)[1]
-        per_go_zscore_mat <- foreach(drug_subset_go_pred_sum_row = i_drug_subset_go_pred_sum_row, i = icount(), .combine = rbind, .maxcombine = 100000) %dopar% {
-            message(sprintf('computing %s-derived per-gene-set zscore for condition %s/%s', control_type, i, n))
-            drug_subset_go_pred_sum_row <- as.vector(drug_subset_go_pred_sum_row)
-            (drug_subset_go_pred_sum_row - control_go_pred_sum_means) / control_go_pred_sum_stdevs
-        }
-        dimnames(per_go_zscore_mat) <- dimnames(drug_subset_go_pred_sum_mat)
-        per_go_zscore_mat
-    }
+    #    n = dim(drug_subset_go_pred_sum_mat)[1]
+    #    per_go_zscore_mat <- foreach(drug_subset_go_pred_sum_row = i_drug_subset_go_pred_sum_row, i = icount(), .combine = rbind, .maxcombine = 100000) %dopar% {
+    #        message(sprintf('computing %s-derived per-gene-set zscore for condition %s/%s', control_type, i, n))
+    #        drug_subset_go_pred_sum_row <- as.vector(drug_subset_go_pred_sum_row)
+    #        (drug_subset_go_pred_sum_row - control_go_pred_sum_means) / control_go_pred_sum_stdevs
+    #    }
+    #    dimnames(per_go_zscore_mat) <- dimnames(drug_subset_go_pred_sum_mat)
+    #    per_go_zscore_mat
+    #}
 
-    names(per_go_zscore_mats_by_control) <- control_types
+    #names(per_go_zscore_mats_by_control) <- control_types
     
     message('Assembling final data structure...')
 
-    print(str(drug_subset_go_pred_sum_mat))
+    # print(str(drug_subset_go_pred_sum_mat))
 
-    per_go_final_list <- foreach(pval_mat = per_go_pval_mats_by_control, zscore_mat = per_go_zscore_mats_by_control) %do% {
-        list(pval = pval_mat, zscore = zscore_mat)
+    per_gene_set_final_list = vector('list', num_control_types)
+    names(per_gene_set_final_list) = control_types
+
+    for (i in 1:num_control_types) {
+        
+        per_gene_set_final_list[[i]] = list(pval = per_gene_set_pval_mats_by_control[[i]],
+                                            zscore = per_gene_set_zscore_mats_by_control[[i]])
     }
-    
-    names(per_go_final_list) <- control_types
 
-    return(per_go_final_list)
+    #per_go_final_list <- foreach(pval_mat = per_go_pval_mats_by_control, zscore_mat = per_go_zscore_mats_by_control) %do% {
+    #    list(pval = pval_mat, zscore = zscore_mat)
+    #}
+    
+    #names(per_go_final_list) <- control_types
+
+    return(per_gene_set_final_list)
 
 }
 
@@ -182,6 +263,13 @@ compute_per_condition_pvals_zscores = function(target_prediction_subset_mat, dru
 }
 
 compute_per_condition_pvals_zscores_2 = function(condition_x_gene_score_mat, condition_x_gene_set_sum_mat, gene_set_mat, num_per_cond_rand, gene_set_sizes, condition_x_gene_score_means, condition_x_gene_score_stdevs, seed) {
+    
+    # Get some dimensions
+    num_conditions = dim(condition_x_gene_set_sum_mat)[1]
+    num_gene_sets = dim(condition_x_gene_set_sum_mat)[2]
+    num_genes = dim(condition_x_gene_score_mat)[2]
+    
+    ##### P-VALUES #####
     # Tricky part: compute p values for each per-drug
     # zscore.
     # Current scheme: shuffling gene labels on target_prediction_scores
@@ -189,12 +277,9 @@ compute_per_condition_pvals_zscores_2 = function(condition_x_gene_score_mat, con
     #i_drug_subset_gene_score_row <- iter(target_prediction_subset_mat, by = 'row')
     #i_drug_subset_go_pred_sum_row <- iter(drug_subset_go_pred_sum_mat, by = 'row')
 
-    # Set up some variables before running the loop that
-    # computes the # of randoms that beat real predictions
-    # for each drug X gene set combination
-    num_conditions = dim(condition_x_gene_set_sum_mat)[1]
-    num_gene_sets = dim(condition_x_gene_set_sum_mat)[2]
-    num_genes = dim(condition_x_gene_score_mat)[2]
+    # Preallocate the output data structures before running
+    # the loop that computes the # of randoms that beat real
+    # predictions for each drug X gene set combination
     rand_result_mat = matrix(numeric(num_conditions * num_gene_sets),
                              nrow = num_conditions,
                              dimnames = dimnames(condition_x_gene_set_sum_mat))
@@ -211,7 +296,8 @@ compute_per_condition_pvals_zscores_2 = function(condition_x_gene_score_mat, con
 
     for (i in 1:num_per_cond_rand) {
         
-        message(sprintf('computing per-condition p values, randomization: %s/%s', i, num_per_cond_rand))
+        cat(sprintf('computing per-condition p values, randomization: %s/%s\r', i, num_per_cond_rand))
+        #message(sprintf('computing per-condition p values, randomization: %s/%s', i, num_per_cond_rand))
 
         # Shuffle the gene set matrix (this is faster
         # than shuffling the condition X gene set
@@ -231,10 +317,13 @@ compute_per_condition_pvals_zscores_2 = function(condition_x_gene_score_mat, con
         # the shuffled gene sets (shuffled on the gene side)
         # had the same or larger sum of gene-level target score
         # across all the genes in the gene set of interest.
+        # Use subsetting to make sure the matrix is modified
+        # in place to save memory
         rand_beats_real_count_mat[] = rand_beats_real_count_mat + as.integer(rand_result_mat >= condition_x_gene_set_sum_mat)
         
 
     }
+    cat('\n\n')
    
     per_condition_pval_mat = rand_beats_real_count_mat / num_per_cond_rand
     
@@ -263,18 +352,34 @@ compute_per_condition_pvals_zscores_2 = function(condition_x_gene_score_mat, con
     #dimnames(per_drug_pval_mat) <- dimnames(drug_subset_go_pred_sum_mat)
  
 
+    ##### Z-SCORES #####
+    # Preallocate the output z-score matrix
+    per_condition_zscore_mat = matrix(numeric(num_conditions * num_gene_sets),
+                                      nrow = num_conditions,
+                                      dimnames = dimnames(condition_x_gene_set_sum_mat))
 
-    # Compute per-condition z-scores
-    i_condition_x_gene_set_sum_col <- iter(condition_x_gene_set_sum_mat, by = 'col')
-    n = dim(condition_x_gene_set_sum_mat)[2]
-    per_condition_zscore_mat <- foreach(condition_x_gene_set_sum_col = i_condition_x_gene_set_sum_col, gene_set_size = gene_set_sizes, i = icount(), .combine = 'cbind', .maxcombine = 100000) %dopar% {
-        message(sprintf('computing per-condition zscores for gene set %s/%s', i, n))
-        condition_x_gene_set_sum_col <- as.vector(condition_x_gene_set_sum_col)
+    # Yes, another for loop. They work great lol.
+    for (i in 1:num_gene_sets) {
 
-        sqrt(gene_set_size) * ((condition_x_gene_set_sum_col / gene_set_size) - condition_x_gene_score_means) / condition_x_gene_score_stdevs
+        cat(sprintf('computing per-condition zscores for gene set %s/%s\r', i, num_gene_sets))
+        #message(sprintf('computing per-condition zscores for gene set %s/%s', i, num_gene_sets))
+        per_condition_zscore_mat[, i] = sqrt(gene_set_sizes[i]) * ((condition_x_gene_set_sum_mat[, i] / gene_set_sizes[i]) - condition_x_gene_score_means) / condition_x_gene_score_stdevs
+
     }
-    
-    dimnames(per_condition_zscore_mat) <- dimnames(condition_x_gene_set_sum_mat)
+    cat('\n\n')
+
+
+    ## Compute per-condition z-scores
+    #i_condition_x_gene_set_sum_col <- iter(condition_x_gene_set_sum_mat, by = 'col')
+    #n = dim(condition_x_gene_set_sum_mat)[2]
+    #per_condition_zscore_mat <- foreach(condition_x_gene_set_sum_col = i_condition_x_gene_set_sum_col, gene_set_size = gene_set_sizes, i = icount(), .combine = 'cbind', .maxcombine = 100000) %dopar% {
+    #    message(sprintf('computing per-condition zscores for gene set %s/%s', i, n))
+    #    condition_x_gene_set_sum_col <- as.vector(condition_x_gene_set_sum_col)
+
+    #    sqrt(gene_set_size) * ((condition_x_gene_set_sum_col / gene_set_size) - condition_x_gene_score_means) / condition_x_gene_score_stdevs
+    #}
+    #
+    #dimnames(per_condition_zscore_mat) <- dimnames(condition_x_gene_set_sum_mat)
 
     per_condition_final_list <- list(pval = per_condition_pval_mat, zscore = per_condition_zscore_mat)
     
