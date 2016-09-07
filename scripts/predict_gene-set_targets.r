@@ -34,6 +34,7 @@ source(file.path(TARGET_PATH, 'lib/table_to_globular.r'))
 source(file.path(TARGET_PATH, 'lib/zscore-pval_by-drug-and-goterm_fast.r'))
 source(file.path(TARGET_PATH, 'lib/pos_args.r'))
 source(file.path(TARGET_PATH, 'lib/filenames.r'))
+source(file.path(TARGET_PATH, 'lib/datasets.r'))
 
 
 # print(sessionInfo())
@@ -65,7 +66,19 @@ save_data_factory = function(folder) {
         outfile = file.path(folder, sprintf('save_point_%s.RData', x))
         message(sprintf('\nsaving data at save point %s...', x))
         message(sprintf('location: %s\n', outfile))
-        save.image(outfile)
+        # Get a list of everything except for functions, and also
+        # remove the save_points and load_point variablex. We want
+        # both functions and save/load points to be defined for
+        # each run of the code. (don't want old bugs hanging
+        # around or wasting time on saving when the user doesn't
+        # want it)
+        # If I think about it, removing the load_point variable
+        # probably doesn't matter, but I'm preventing it from
+        # saving anyway.
+        object_vec = setdiff(ls(envir = .GlobalEnv), lsf.str(envir = .GlobalEnv))
+        object_vec = setdiff(object_vec, c('save_points', 'load_point'))
+        #print(object_vec)
+        save(list = object_vec, file = outfile, envir = .GlobalEnv)
         message('done')
     }
     return(fun)
@@ -203,11 +216,25 @@ if (load_point < 1) {
     sample_table_filename = config_params$Required_arguments$cg_col_info_table
     sample_table = fread(sample_table_filename, header = TRUE, colClasses = 'character')
 
-    gene_set_file = config_params$Required_arguments$gene_set_table
-    gene_set_tab = fread(gene_set_file, header = TRUE, colClasses = 'character')
+    gene_set_name = config_params$Required_arguments$gene_set_name
+    gi_data_name = config_params$Required_arguments$gi_dataset_name
+    gene_set_info = get_gene_set_info(gi_data_name, gene_set_name, TARGET_PATH)
+    print(gene_set_info)
+    gene_set_tab_full = fread(gene_set_info$filename, header = TRUE, sep = '\t', colClasses = 'character')
+    gene_set_gene_id_col = names(gene_set_tab_full)[1]
+    gene_set_id_col = names(gene_set_tab_full)[2]
+    gene_set_name_col = gene_set_info$interpretable_column
+    print(gene_set_tab_full)
+    print(gene_set_id_col)
+    print(gene_set_name_col)
+    gene_set_tab = gene_set_tab_full[, c(gene_set_gene_id_col, gene_set_id_col), with = FALSE]
 
-    query_info_file = config_params$Required_arguments$gi_query_info_table
-    query_info_tab = fread(query_info_file, header = TRUE, colClasses = 'character')
+    gi_info = get_gi_info(config_params$Required_arguments$gi_dataset_name, TARGET_PATH)
+    #gi_tab = fread(sprintf('gzip -dc %s', gi_filenames$gi_tab))
+    query_info_tab = fread(gi_info$gi_query_tab)
+
+    #query_info_file = config_params$Required_arguments$gi_query_info_table
+    #query_info_tab = fread(query_info_file, header = TRUE, colClasses = 'character')
 
     driver_cutoff = as.numeric(config_params$Required_arguments$driver_cutoff)
     if (is.na(driver_cutoff)) { stop('driver_cutoff argument must be numeric.') }
@@ -231,19 +258,22 @@ if (load_point < 1) {
 
     ################### Load in optional files and options
     # Gene set ID to interpretable name table
-    if (!is.null(config_params$Options$gene_set_target_prediction$gene_set_name_table)) {
-        gene_set_name_file = config_params$Options$gene_set_target_prediction$gene_set_name_table
-        gene_set_name_tab = fread(gene_set_name_file, header = FALSE)
+    if (!is.null(gene_set_name_col)) {
+        #gene_set_name_file = config_params$Options$gene_set_target_prediction$gene_set_name_table
+        gene_set_name_tab = unique(gene_set_tab_full[, c(gene_set_id_col, gene_set_name_col), with = FALSE])
         print(gene_set_name_tab)
         setnames(gene_set_name_tab, c('gene_set', 'gene_set_name'))
     } else {
         gene_set_name_tab = NULL
     }
 
-    if (!is.null(config_params$Options$gene_set_target_prediction$query_genename_column)) {
-        gene_name_column = config_params$Options$gene_set_target_prediction$query_genename_column
-    } else {
-        gene_name_column = NULL
+    # Note: if no column is specified containing interpretable gene names,
+    # then this variable will already be NULL.
+    gene_name_column = gi_info$query_genename_col
+    if (!is.null(gene_name_column)) {
+        if (! gene_name_column %in% names(query_info_tab)) {
+            stop(sprintf('column %s was specified as the column in the query info table that contains interpretable gene names, but the columns does not exist! query info table is here:\n%s', gene_name_column, gi_info$gi_query_tab))
+        }
     }
 
     ################ Read in the sample table and negative control/condition name columns, if they exist
@@ -372,9 +402,6 @@ if (load_point < 2) {
     # names. If that column was not given, create a matrix of NA
     # values instead.
     if (!is.null(gene_name_column)) {
-        if (! gene_name_column %in% names(query_info_tab)) {
-            stop(sprintf('column %s not in query_info_tab!', gene_name_column))
-        }
         gene_name_map = query_info_tab[[gene_name_column]]
         names(gene_name_map) = query_info_tab[['query_key']]
         best_query_name_mat = matrix(gene_name_map[best_query_mat], nrow = nrow(best_query_mat), ncol = ncol(best_query_mat), dimnames = dimnames(best_query_mat))
@@ -681,16 +708,17 @@ if (load_point < 6) {
 
     # I need to subset the target prediction matrix so I can get the correct
     # process prediction drivers back!
-    best_prediction_subset_mat <- best_prediction_mat[condition_inds, ][all_control_vec[condition_inds] %in% sample_types_to_predict_for, ]
+    best_prediction_subset_mat = best_prediction_mat[condition_inds, ][all_control_vec[condition_inds] %in% sample_types_to_predict_for, ]
     best_query_subset_mat = best_query_mat[condition_inds, ][all_control_vec[condition_inds] %in% sample_types_to_predict_for, ]
     best_query_name_subset_mat = best_query_name_mat[condition_inds, ][all_control_vec[condition_inds] %in% sample_types_to_predict_for, ]
 
     # Here I will get a table of drivers of my go process predictions
-    gene_set_drivers_dt <- get_go_drivers(best_prediction_subset_mat, best_query_subset_mat, best_query_name_subset_mat, gene_set_matrix, cutoff = driver_cutoff)
+    gene_set_drivers_dt = get_gene_set_drivers(best_prediction_subset_mat, best_query_subset_mat, best_query_name_subset_mat, gene_set_matrix, cutoff = driver_cutoff)
     # If the driver gene names were not specified, remove that column from the target prediction table!
     if (is.null(gene_name_column)) {
         gene_set_drivers_dt[, driver_name := NULL]
     }
+
 }
 
 # Save/load point 6!

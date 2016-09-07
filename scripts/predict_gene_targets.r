@@ -21,6 +21,7 @@ source(file.path(TARGET_PATH, 'lib/cosine.r'))
 source(file.path(TARGET_PATH, 'lib/dot_cosine.r'))
 source(file.path(TARGET_PATH, 'lib/pos_args.r'))
 source(file.path(TARGET_PATH, 'lib/filenames.r'))
+source(file.path(TARGET_PATH, 'lib/datasets.r'))
 
 positional_arguments_list = c(CONFIG_FILE = 'yaml-formatted gene-set prediction configuration file.')
 
@@ -56,8 +57,10 @@ cg_tab = fread(sprintf('gzip -dc %s', cg_filename), colClasses = c('character', 
 cg_row_tab = fread(config_params$Required_arguments$cg_row_info_table)
 
 # Read in the GI data
-gi_tab = fread(sprintf('gzip -dc %s', config_params$Required_arguments$gi_data_table))
-gi_array_tab = fread(config_params$Required_arguments$gi_array_info_table)
+gi_info = get_gi_info(config_params$Required_arguments$gi_dataset_name, TARGET_PATH)
+gi_tab = fread(sprintf('gzip -dc %s', gi_info$gi_tab))
+gi_array_tab = fread(gi_info$gi_array_tab)
+gi_to_cg_match_col = gi_info$array_sys_name_col
 
 # Shape the CG data into a matrix with the rownames coming from
 # the column that matches the GI data match column
@@ -74,9 +77,12 @@ print(str(cg_mat))
 # the column that matches the CG data match column
 setkey(gi_tab, array_key)
 setkey(gi_array_tab, array_key)
-gi_tab = gi_tab[gi_array_tab[, c('array_key', config_params$Required_arguments$gi_to_cg_match_col), with = FALSE], nomatch = 0, allow.cartesian = TRUE]
+gi_tab = gi_tab[gi_array_tab[, c('array_key', gi_to_cg_match_col), with = FALSE], nomatch = 0, allow.cartesian = TRUE]
 print(gi_tab)
-gi_form = as.formula(sprintf('%s ~ %s', config_params$Required_arguments$gi_to_cg_match_col, 'query_key'))
+gi_form = as.formula(sprintf('%s ~ %s', gi_to_cg_match_col, 'query_key'))
+# While the queries (columns) in the matrix should be unique, the arrays,
+# since they are defined only by a systematic gene name, could be duplicated
+# and will therefore be averaged if that is the case.
 gi_mat = acast(data = gi_tab, formula = gi_form, fill = 0, fun.aggregate = mean, na.rm = TRUE, value.var = 'score')
 print(str(gi_mat))
 
