@@ -254,14 +254,19 @@ download_gene_set_table = function(gi_name, gene_set_name, gene_set_gi_dir, gene
     password = NULL
     while(!(response %in% c('y', 'n'))) {
         message('Does the file require a username and password? (y/n)')
-        response = readLines(file('stdin'),1)
-        #response = scan(what = character())
+        response_con = file('stdin')
+        response = readLines(response_con, 1)
+        close(response_con)
     }
     if(response == 'y') {
         message('username:')
-        username = readLines(file('stdin'),1)
+        username_con = file('stdin')
+        username = readLines(username_con, 1)
+        close(username_con)
         message('password:')
-        password = readLines(file('stdin'),1)
+        password_con = file('stdin')
+        password = readLines(username_con, 1)
+        close(password_con)
         download_loc_userpwd = url_username_password(download_location, username, password)
     } else {
         download_loc_userpwd = download_location
