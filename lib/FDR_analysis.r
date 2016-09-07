@@ -3,7 +3,6 @@
 #################################################################
 
 library(data.table)
-library(Cairo)
 library(ggplot2)
 library(reshape2)
 
@@ -72,7 +71,6 @@ plot_discoveries_vs_pval <- function(top_counts_dt, filename_meat, pre) {
               )
 
 
-#    CairoPDF(file = file.path(pre, sprintf('%s.pdf', filename_meat)), height = 6, width = 6)
     pdf(file = file.path(pre, sprintf('%s.pdf', filename_meat)), height = 6, width = 6)
     print(dvp_plot)
     dev.off()
@@ -243,7 +241,6 @@ plot_fdr_vs_discoveries <- function(top_dt_with_fdr, controls, filename_meat, pr
               plot.title = element_text(margin = margin(0, 0, 15, 0))
               )
     
-#    CairoPDF(file.path(pre, sprintf('%s.pdf', filename_meat)), height = 6, width = 6)
     pdf(file.path(pre, sprintf('%s.pdf', filename_meat)), height = 6, width = 6)
     print(fvd_plot)
     dev.off()

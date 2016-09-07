@@ -4,7 +4,6 @@
 
 library(ggplot2)
 library(data.table)
-library(Cairo)
 
 # Source in libraries specific to this part of the script!
 TARGET_PATH = Sys.getenv('TARGET_PATH')
@@ -317,7 +316,7 @@ print_diagnostic_plots_pval_zscore_2_schemes <- function(scheme1_pval_mat, schem
 
     # And some code to print all of these out to plots
     qc_plot <- function(ggplot_obj, filename) {
-        CairoPNG(file = file.path(plots_folder, filename), height = 4, width = 4, units = 'in', dpi = 200)
+        png(file = file.path(plots_folder, filename), height = 4, width = 4, units = 'in', dpi = 200)
         print(ggplot_obj)
         dev.off()
     }
