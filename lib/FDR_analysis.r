@@ -57,19 +57,32 @@ add_top_discovery_counts<- function(top_dat) {
 }
 
 plot_discoveries_vs_pval <- function(top_counts_dt, filename_meat, pre) {
-    
+
+    # Do the plot thing    
     dvp_plot <- ggplot(data = top_counts_dt) +
         geom_line(aes(x = p_value, y = scaled_condition_count, color = sample_type), size = 2) +
         scale_y_log10() +
         scale_x_log10() +
         scott_theme_1() +
         annotation_logticks(sides = 'lb') +
-        labs(x = 'p-value of top prediction', y = 'Number of conditions', title = 'Top gene set prediction p values')
+        labs(x = 'p-value of top prediction', y = 'Number of conditions', title = 'Top gene set prediction\nper compound') +
+        theme(axis.title.x = element_text(margin = margin(10, 0, 0, 0)),
+              axis.title.y = element_text(margin = margin(0, 10, 0, 0)),
+              plot.title = element_text(margin = margin(0, 0, 15, 0))
+              )
 
 
-    CairoPDF(file = file.path(pre, sprintf('%s.pdf', filename_meat)), height = 6, width = 6)
+#    CairoPDF(file = file.path(pre, sprintf('%s.pdf', filename_meat)), height = 6, width = 6)
+    pdf(file = file.path(pre, sprintf('%s.pdf', filename_meat)), height = 6, width = 6)
     print(dvp_plot)
     dev.off()
+
+    # Print the values
+    write_vals = function(tab, sample_type, filename_meat, pre) {
+        filename = file.path(pre, sprintf('%s_%s.txt', filename_meat, sample_type))
+        write.table(tab, file = filename, sep = '\t', quote = FALSE, row.names = FALSE, col.names = TRUE)
+    }
+    top_counts_dt[, write_vals(.SD, .BY[[1]], filename_meat, pre), by = sample_type]
 
 }
 
@@ -91,12 +104,29 @@ get_pval_fdr_mapping <- function(top_dat) {
         top_dat_list
     }
 
+    enforce_monotonicity = function(vec) {
+
+        for (i in 1:(length(vec) - 1)) {
+            if (vec[i + 1] < vec[i]) {
+                vec[i + 1] = vec[i]
+            }
+        }
+
+        vec
+    }
+
     calc_fdr <- function(control, treatment, top_dat_list) {
         fdr <- top_dat_list[[control]][['max_scaled_count']] / top_dat_list[[treatment]][['max_scaled_count']]
         fdr[fdr > 1] <- 1
 
         print('making sure fdr is indeed sorted!')
+        print('original:')
         print(fdr[1:50])
+        print('monotonicity enforced:')
+        fdr = enforce_monotonicity(fdr)
+        print(fdr[1:50])
+        
+        
 
         # Since the FDR list is sorted here, I can also add an important step:
         # not letting the FDR go down after it reaches 100%
@@ -154,6 +184,7 @@ get_pval_fdr_mapping <- function(top_dat) {
     # The FDR estimate is actually calculated here. The control table and treatment table are
     # already lined up, so just divide the number of control conditions at a particular p-value
     # by the number of treatment conditions at the same p-value. Gold.
+    print(top_pval_last_obs_dt_list)
     fdrs_by_control <- calc_fdr_all_controls(top_pval_last_obs_dt_list, controls = controls, treatment = treatment)
     names(fdrs_by_control) <- controls
 
@@ -181,28 +212,49 @@ add_fdr<- function(dat, pval_fdr_map, controls) {
 }
 
 plot_fdr_vs_discoveries <- function(top_dt_with_fdr, controls, filename_meat, pre) {
-    
+   
+    print(controls)
+
+    split_off_last = function(x, delim) {
+        split_x = strsplit(x, delim)[[1]]
+        paste(split_x[-length(split_x)], collapse = delim)
+    }
+
     stack_fdr_cols <- function(top_dt) {
     
         new_control_type_names = sprintf('%s_FDR', controls)
         dt_base <- top_dt[, !(names(top_dt) %in% new_control_type_names), with = FALSE]
-        long_dt_list <- lapply(new_control_type_names, function(x) data.table(dt_base, fdr = top_dt[[x]], fdr_type = strsplit(x, '_')[[1]][1]))
+        long_dt_list <- lapply(new_control_type_names, function(x) data.table(dt_base, fdr = top_dt[[x]], fdr_type = split_off_last(x, '_')))
         rbindlist(long_dt_list)
     }
     
-    top_dt_fdr_wide <- stack_fdr_cols(top_dt_with_fdr)
-    
-    fvd_plot <- ggplot(data = top_dt_fdr_wide[sample_type == 'treatment']) +
+    top_dt_fdr_long <- stack_fdr_cols(top_dt_with_fdr)
+   
+    # Do the plot thing
+    fvd_plot <- ggplot(data = top_dt_fdr_long[sample_type == 'treatment']) +
         geom_step(aes(x = scaled_condition_count, y = fdr, color = fdr_type), size = 2, direction = 'vh') +
         scale_x_log10() +
         scott_theme_1() +
-        labs(x = 'Number of discoveries', y = 'False Discovery Rate', title = sprintf('FDR as assessed by\n%s conditions', paste(controls, collapse = ' and '))) +
+        labs(x = 'Number of conditions', y = 'False Discovery Rate', title = 'False discovery rate based on the\ntop prediction for each condition') +
         scale_colour_brewer(palette = 'Set1') +
-        annotation_logticks(sides = 'b')
+        annotation_logticks(sides = 'b') +
+        theme(axis.title.x = element_text(margin = margin(10, 0, 0, 0)),
+              axis.title.y = element_text(margin = margin(0, 10, 0, 0)),
+              plot.title = element_text(margin = margin(0, 0, 15, 0))
+              )
     
-    CairoPDF(file.path(pre, sprintf('%s.pdf', filename_meat)), height = 6, width = 6)
+#    CairoPDF(file.path(pre, sprintf('%s.pdf', filename_meat)), height = 6, width = 6)
+    pdf(file.path(pre, sprintf('%s.pdf', filename_meat)), height = 6, width = 6)
     print(fvd_plot)
     dev.off()
+    
+    # Print the values
+    write_vals = function(tab, fdr_type, filename_meat, pre) {
+        print(fdr_type)
+        filename = file.path(pre, sprintf('%s_%s.txt', filename_meat, fdr_type))
+        write.table(tab, file = filename, sep = '\t', quote = FALSE, row.names = FALSE, col.names = TRUE)
+    }
+    top_dt_fdr_long[sample_type == 'treatment', write_vals(.SD, .BY[[1]], filename_meat, pre), by = fdr_type]
 }
 
 write_pval_zscore_dt_old <- function(p_z_dt, filename_meat, pre) {
