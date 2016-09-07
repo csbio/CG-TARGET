@@ -37,21 +37,6 @@ source(file.path(TARGET_PATH, 'lib/datasets.r'))
 # print(sessionInfo())
 
 # Some function definitions...
-initialize_parallel = function(ncores) {
-
-    if (length(ncores) == 0) {
-        #ncores = 1L
-        registerDoSEQ()
-    } else if (ncores > 1) {
-        registerDoParallel(cores = ncores)
-    #} else if (ncores > 1) {
-    #    clus = startMPIcluster(ncores)
-    #    registerDoMPI(clus)
-    } else {
-        stop('option num_cores could not be converted into an integer!')
-    }
-}
-
 save_data_factory = function(folder) {
     # This function returns a function that saves data in a
     # folder that is specified at the time of function creation.
@@ -563,11 +548,6 @@ if (load_point == 2) {
     load_data(2)
 }
 
-# At this point, I need to initialize the parallelization if it is to be
-# used at any point during this analysis; at this point, all arguments
-# necessary to initialize parallelization are present, either by running
-# the code from the beginning or by loading in the 1st save point!
-initialize_parallel(ncores = config_params$Options$gene_set_target_prediction$num_cores)
 
 ########### Get p-values and z-scores for per-gene-set evaluations
 
