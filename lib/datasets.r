@@ -6,7 +6,7 @@
 # of the requested genetic interaction dataset and, if
 # necessary, download said datasets from the specified
 # location.
-library(R.utils)
+#library(R.utils)
 library(digest)
 
 # Source in the function that generates an md5 checksum for
