@@ -22,6 +22,7 @@ source(file.path(TARGET_PATH, 'lib/cosine.r'))
 source(file.path(TARGET_PATH, 'lib/dist_for_clustering.r'))
 source(file.path(TARGET_PATH, 'lib/filenames.r'))
 source(file.path(TARGET_PATH, 'lib/pos_args.r'))
+source(file.path(TARGET_PATH, 'lib/datasets.r'))
 
 positional_arguments_list = c(CONFIG_FILE = 'yaml-formatted gene-set prediction configuration file.')
 
@@ -35,17 +36,6 @@ print(arguments)
 arg = arguments$args
 opt = arguments$options
 
-
-#spec = rbind(c('dataset_file', 'f', 1, 'character', 'A 4-column, gzipped table, with one column for the row identifiers (query_key), two columns for the column identifiers (screen_name, expt_id), and one column with gene-target prediction scores (score).'),
-#             c('clustergram_name', 'n', 1, 'character', 'The name of the cdt/atr/gtr files that are exported.'),
-#             c('GI_info_table', 'G', 1, 'character', 'A table, with one column as a unique query identifier (query_key) and the remaining columns providing information linked to that query identifier (systematic gene name, interpretable gene name, etc.'),
-#             c('sample_table', 'S', 1, 'character', 'The sample table used to process the chemical genomic data from the beginning. Must have "screen_name" and "expt_id" columns.'),
-#             c('GI_columns', 'g', 1, 'character', 'Columns from the GI_info_table to include in the clustergram row labels. Comma-delimited, no space between.'),
-#             c('condition_columns', 'c', 1, 'character', 'Columns from the sample_table to include in the clustergram column labels. Comma-delimited, no space between.'),
-#             c('verbosity', 'v', 2, 'character', 'Columns from the sample_table to include in the clustergram column labels. Comma-delimited, no space between.')
-#             )
-#
-#opt = getopt(spec)
 
 # Read in the configuration parameters
 config_f = file(arg[1], 'rt')
