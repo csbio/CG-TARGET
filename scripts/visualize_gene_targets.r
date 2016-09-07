@@ -74,7 +74,15 @@ setkey(query_info_tab, query_key)
 print(query_info_tab)
 
 # Read in the CG info
-sample_tab = fread(config_params$Required_arguments$cg_col_info_table, header = TRUE, colClasses = 'character')
+if (opt$rand) {
+    # If this for the resampled profiles, which do not have an accompanying
+    # sample table, then just make one on the fly!
+    sample_tab = tab[, list(screen_name, expt_id)]
+} else {
+    # Otherwise read in the real sample table
+    sample_tab = fread(config_params$Required_arguments$cg_col_info_table, header = TRUE, colClasses = 'character')
+}
+
 sample_tab[, condition_key := sprintf('%s_%s', screen_name, expt_id)]
 setkey(sample_tab, condition_key)
 print(sample_tab)
@@ -90,7 +98,11 @@ print(GI_columns)
 row_labels = apply(query_info_tab[dimnames(mat)[[1]]][, GI_columns, with = FALSE], 1, paste, collapse = '_')
 
 # Get the final colnames of the matrix!
-condition_columns = strsplit(config_params$Options$gene_target_prediction_visualization$cg_col_table_vis_columns, ',')[[1]]
+if (opt$rand) {
+    condition_columns = c('screen_name', 'expt_id')
+} else {
+    condition_columns = strsplit(config_params$Options$gene_target_prediction_visualization$cg_col_table_vis_columns, ',')[[1]]
+}
 print(condition_columns)
 col_labels = apply(sample_tab[dimnames(mat)[[2]]][, condition_columns, with = FALSE], 1, paste, collapse = '_')
 
