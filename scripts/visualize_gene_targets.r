@@ -98,7 +98,7 @@ print(GI_columns)
 row_labels = apply(query_info_tab[dimnames(mat)[[1]]][, GI_columns, with = FALSE], 1, paste, collapse = '_')
 
 # Get the final colnames of the matrix!
-message(opt$rand)
+#message(opt$rand)
 if (opt$rand) {
     condition_columns = c('screen_name', 'expt_id')
 } else {
@@ -107,9 +107,9 @@ if (opt$rand) {
 print(condition_columns)
 col_labels = apply(sample_tab[dimnames(mat)[[2]]][, condition_columns, with = FALSE], 1, paste, collapse = '_')
 
-message(str(mat))
-message(str(row_labels))
-message(str(col_labels))
+#message(str(mat))
+#message(str(row_labels))
+#message(str(col_labels))
 
 # Change the dimnames of the matrix!
 dimnames(mat) = list(row_labels, col_labels)
