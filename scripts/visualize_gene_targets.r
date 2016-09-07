@@ -98,6 +98,7 @@ print(GI_columns)
 row_labels = apply(query_info_tab[dimnames(mat)[[1]]][, GI_columns, with = FALSE], 1, paste, collapse = '_')
 
 # Get the final colnames of the matrix!
+message(opt$rand)
 if (opt$rand) {
     condition_columns = c('screen_name', 'expt_id')
 } else {
