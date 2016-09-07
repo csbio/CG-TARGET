@@ -21,9 +21,6 @@ library(optparse)
 library(yaml)
 library(reshape2)
 library(data.table)
-library(foreach)
-library(doParallel)
-#library(doMPI)
 
 # Source in libraries for gene set target prediction
 TARGET_PATH = Sys.getenv('TARGET_PATH')
@@ -520,9 +517,16 @@ if (load_point < 2) {
     # Here's the final ordering step
     controls = controls[control_order]
 
-    control_gene_set_pred_sum_mat_list <- foreach(control = controls) %do% {
-        condition_gene_set_pred_sum_mat[sample_type_split_vec %in% control, ]
+    #control_gene_set_pred_sum_mat_list <- foreach(control = controls) %do% {
+    #    condition_gene_set_pred_sum_mat[sample_type_split_vec %in% control, ]
+    #}
+
+    control_gene_set_pred_sum_mat_list = vector('list', length(controls))
+    for (i in seq_along(controls)) {
+        control = controls[[i]]
+        control_gene_set_pred_sum_mat_list[[i]] = condition_gene_set_pred_sum_mat[sample_type_split_vec == control, ]
     }
+    names(control_gene_set_pred_sum_mat_list) = controls
 
 
     rm(target_prediction_mat)
@@ -530,16 +534,20 @@ if (load_point < 2) {
 
     gc()
 
-    control_gene_set_pred_sum_means_list <- foreach(control_gene_set_pred_sum_mat = control_gene_set_pred_sum_mat_list) %do% {
-        colMeans(control_gene_set_pred_sum_mat)
-    }
+    #control_gene_set_pred_sum_means_list <- foreach(control_gene_set_pred_sum_mat = control_gene_set_pred_sum_mat_list) %do% {
+    #    colMeans(control_gene_set_pred_sum_mat)
+    #}
 
-    control_gene_set_pred_sum_stdevs_list <- foreach(control_gene_set_pred_sum_mat = control_gene_set_pred_sum_mat_list) %do% {
-        apply(control_gene_set_pred_sum_mat, 2, sd)
-    }
+    #control_gene_set_pred_sum_stdevs_list <- foreach(control_gene_set_pred_sum_mat = control_gene_set_pred_sum_mat_list) %do% {
+    #    apply(control_gene_set_pred_sum_mat, 2, sd)
+    #}
 
-    names(control_gene_set_pred_sum_means_list) <- controls
-    names(control_gene_set_pred_sum_stdevs_list) <- controls
+    control_gene_set_pred_sum_means_list = lapply(control_gene_set_pred_sum_mat_list, colMeans)
+    control_gene_set_pred_sum_stdevs_list = lapply(control_gene_set_pred_sum_mat_list,
+                                                   function(x) apply(x, 2, sd))
+
+    names(control_gene_set_pred_sum_means_list) = controls
+    names(control_gene_set_pred_sum_stdevs_list) = controls
 
 }
 
