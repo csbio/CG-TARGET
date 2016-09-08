@@ -81,6 +81,8 @@ export PATH=$PATH:/your/path/to/CG-TARGET/scripts
 
 I am an advocate of using virtual environments to manage environment variables in ways that keep one's default environment clean from the many different variables that may be required for different software packages. I currently use anaconda, a combined virtual environment and package manager, to manage my Microsoft R Open and GNU R installations. Venv is another good virtual environment manager.
 
+For an example of how I set up R using conda, see this gist: https://gist.github.com/RussianImperialScott/d10a83366ee8bc2823fa63651cb65fe3
+
 ##How to use
 
 After downloading the software and setting up your environment variables, it is quite simple to run the commands. First, you will need to set up your configuration file (here called `config_file.yaml`). The `example_config_file.yaml` is provided as a template in the main folder.
