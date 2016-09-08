@@ -4,6 +4,12 @@ CG-TARGET is a collection of R scripts to be used for the purpose of predicting 
 
 ##Features
 
+- Interprets chemical-genetic interaction profiles using a reference set of genetic interaction networks.
+- Species-independent: any species with chemical-genetic interaction profiles can be intepreted, as long as an appropriate genetic interaction dataset is available.
+- Genetic interaction datasets and gene set annotations are automatically downloaded. (users can supply their own GI datasets and gene sets as well)
+- Scalable: amenable to the analysis of both small and large chemical-genetic interaction datasets.
+- Written in R; no other dependencies.
+
 ##Installation
 
 ###Requirements
@@ -21,6 +27,10 @@ __**The following libraries are required:**__
 	reshape2
 	tools
 	yaml
+	
+__**The following system commands are required:**__
+
+	gzip (the function of `gzip -dc` must be to decompress a gzipped file and print to stdout)
 
 __**The following libraries are optional:**__
 
@@ -80,6 +90,8 @@ export PATH=$PATH:/your/path/to/CG-TARGET/scripts
 #####Environments
 
 I am an advocate of using virtual environments to manage environment variables in ways that keep one's default environment clean from the many different variables that may be required for different software packages. I currently use anaconda, a combined virtual environment and package manager, to manage my Microsoft R Open and GNU R installations. Venv is another good virtual environment manager.
+
+For an example of how I set up R using conda, see this gist: https://gist.github.com/RussianImperialScott/d10a83366ee8bc2823fa63651cb65fe3
 
 ##How to use
 
