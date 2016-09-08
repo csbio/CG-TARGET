@@ -31,3 +31,17 @@ get_gene_set_target_prediction_folder = function(outdir) {
 get_gene_set_target_prediction_filename = function(folder, rand_scheme, num_rand, seed, similarity, per_cond_seed, per_cond_num_rand, gene_set_name, test_run) {
     file.path(folder, sprintf('gene_set_target_prediction_resampled-%s_%s-rands_seed-%s_%s_per-cond-seed-%s_%s-per-cond-rands_%s-gene-sets.txt.gz', rand_scheme, num_rand, seed, similarity,  per_cond_seed, per_cond_num_rand, gene_set_name, ifelse(test_run, 'test-run', '')))
 }
+
+get_final_results_folder = function(outdir, gene_set_name) {
+    file.path(outdir, 'final_results', gene_set_name)
+}
+
+get_final_results_tabs_folder = function(outdir, gene_set_name) {
+    final_results_folder = get_final_results_folder(outdir, gene_set_name)
+    file.path(final_results_folder, 'tables')
+}
+
+get_final_results_plots_folder = function(outdir, gene_set_name) {
+    final_results_folder = get_final_results_folder(outdir, gene_set_name)
+    file.path(final_results_folder, 'plots')
+}
