@@ -4,6 +4,12 @@ CG-TARGET is a collection of R scripts to be used for the purpose of predicting 
 
 ##Features
 
+- Interprets chemical-genetic interaction profiles using a reference set of genetic interaction networks.
+- Species-independent: any species with chemical-genetic interaction profiles can be intepreted, as long as an appropriate genetic interaction dataset is available.
+- Genetic interaction datasets and gene set annotations are automatically downloaded. (users can supply their own GI datasets and gene sets as well)
+- Scalable: amenable to the analysis of both small and large chemical-genetic interaction datasets.
+- Written in R; no other dependencies.
+
 ##Installation
 
 ###Requirements
@@ -21,6 +27,10 @@ __**The following libraries are required:**__
 	reshape2
 	tools
 	yaml
+	
+__**The following system commands are required:**__
+
+	gzip (the function of `gzip -dc` must be to decompress a gzipped file and print to stdout)
 
 __**The following libraries are optional:**__
 
