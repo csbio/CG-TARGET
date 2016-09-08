@@ -1,0 +1,83 @@
+---
+Required_arguments :
+    # Directory in which to store results.
+    output_folder                       : /path/to/all/output
+    # Table of chemical genetic interaction scores with
+    # "screen_name" and "expt_id" columns for the conditions
+    # and "Strain_ID" and "Barcode" columns for the array strains.
+    # CG scores are stored in a column named "store".
+    cg_data_table                       : /path/to/cg_data_table
+    # Table with "Strain_ID" and "Barcode" columns that map to
+    # other info for the array.
+    cg_row_info_table                   : /path/to/cg_row_info_table
+    # Table with "screen_name" and "expt_id" columns that map to
+    # other info for the conditions.
+    cg_col_info_table                   : /path/to/cg_col_info_table
+    # For matching CG array to GI array: Column in cg_row_info_table
+    # that matches column in gi_array_info_table.
+    # MUST CONTAIN SYSTEMATIC NAMES FOR THE SPECIES IN QUESTION
+    cg_to_gi_match_col                  : ORF
+    # Name of genetic interaction dataset to use. See all available
+    # options by running the "gi_datasets.r" command.
+    gi_dataset_name                     : SGA_DMA_array_no-supps_sig-only
+    # Options: "cg_norm_cosine" and "cosine".
+    cg_gi_similarity_measure            : cg-norm-dot
+    # Define a cutoff on the score from cg_gi_similarity_measure,
+    # above which the query gene is deemed a "driver" of predictions
+    # to gene sets it is in.
+    driver_cutoff                       : 2
+    # Name to uniquely identify the type of gene_sets used as targets.
+    # See all available options by running either "gene_sets.r" or
+    # "gene_sets.r GI_DATASET". The first shows all gi datasets and
+    # their associated gene sets, and the second only shows the gene
+    # sets associated with GI_DATASET.
+    gene_set_name                       : GO-BP
+    # Choose "1" to sample from the actual data for each array or "2"
+    # to sample from normal distributions with mean and standard
+    # deviation calculated for each array in the chemical-genetic
+    # interaction dataset.
+    per-array_resampling_scheme         : 1
+    per-array_resampling_seed           : 54321
+    # A good number is 10000
+    num_per-array_resampled_profiles    : 10000
+    per-condition_randomization_seed    : 12345
+    # This one takes the longest - a good number is 10000
+    num_per-condition_randomizations    : 10000
+Options :
+    ################################################################
+    per-array_randomization:
+        # Column in cg_col_info_table that denotes which samples to
+        # include in the dataset used to generate resampled profiles.
+        # I recommend using a column that has "TRUE" for rows not
+        # belonging to positive or negative controls.
+        per-array_randomization_include_column  : not_pos_neg_control
+    ################################################################
+    gene_target_prediction_visualization        :
+        # Which columns from cg_col_info_table should be shown in
+        # the visualization CDT?
+        cg_col_table_vis_columns                : screen_name,expt_id,name,lane,index_tag,index_tag_well
+        # Which columns from gi_query_info_table should be shown in
+        # the visualization CDT?
+        gi_col_table_vis_columns                : query_genename,query_strain_only,array_type_temp
+    ################################################################
+    gene_set_target_prediction                  :
+        # Column that indicates which conditions are "negative
+        # controls," aka experimental controls (such as DMSO).
+        negative_control_column                 : control?
+        # Column in cg_col_info_table that contains interpretable
+        # names for the conditions.
+        condition_name_column                   : name
+    ################################################################
+    results_export                              :
+        # Column that indicates which conditions are considered
+        # as "treatment" conditions, as opposed to negative or
+        # positive controls. The condtions for which this column
+        # is "TRUE" will be exported to the "treatment" table
+        # after FDR estimation, while those that are not
+        # specified as negative controls will be exported to the
+        # "split-out" table after FDR estimation.
+        # If left empty, the default value is everything that is
+        # not a negative control (or a resampled profile).
+        treatment_column                        : not_pos_neg_control
+
+...
