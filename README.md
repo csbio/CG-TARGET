@@ -84,4 +84,4 @@ License
 -------
 Use of this code is free for academic use and for a 60-day commercial trial period. Sustained commercial use requires the purchase of a license.
 
-In any case, please head on over to z.umn.edu/cgtarget to register for a license.
+In any case, please head on over to z.umn.edu/cgtarget to register for a license. This helps me keep track of the user base :)
