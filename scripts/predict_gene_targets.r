@@ -92,6 +92,15 @@ intersect_genes = intersect(rownames(cg_mat), rownames(gi_mat))
 cg_mat <- cg_mat[intersect_genes, ]
 gi_mat <- gi_mat[intersect_genes, ]
 
+# Filter out any columns in either matrix that do not have any interactions.
+# This would occur after intersecting the genes common to the cg and gi
+# profiles, if for a particular profile, no interactions were measured with
+# the set of common genes.
+# This causes problems with the similarity calculations, as each column is
+# divided by its norm (divide by zero problem).
+cg_mat = cg_mat[, colSums(abs(cg_mat)) != 0]
+gi_mat = gi_mat[, colSums(abs(gi_mat)) != 0]
+
 # Predict targets (calculate similarities between columns of gi_mat and cg_mat)
 # This uses the either 'cosine' similarity or 'dotcosine' similarity, the latter
 # of which normalizes the columns of the gi_matrix but not the cg_matrix
