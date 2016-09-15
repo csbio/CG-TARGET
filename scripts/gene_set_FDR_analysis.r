@@ -75,7 +75,15 @@ sample_table = fread(sample_table_filename, header = TRUE, colClasses = 'charact
 treatment_column = config_params$Options$results_export$treatment_column
 
 if (!is.null(treatment_column)) {
-    
+  
+    # First, check if treatment column is in the cg column table (sample table)
+    if (! treatment_column %in% names(sample_table)) {
+        stop(treatment_column %in% names(sample_table),
+             sprintf('Options : results_export : treatment_column : "%s"\nis not in the cg_col_info_table found at:\n%s',
+                     treatment_column, sample_table_filename)
+             )
+    }
+
     # First, convert the treatment_column to TRUE/FALSE if it's not already
     treatment_vec = true_false_vec[sample_table[[treatment_column]]]
 
@@ -96,6 +104,7 @@ if (!is.null(treatment_column)) {
     } else {
         include_vec = treatment_vec
     }
+
     include_tab = sample_table[, list(condition = sprintf('%s_%s', screen_name, expt_id), include = include_vec)]
     gene_set_prediction_conditions = unique(gene_set_prediction_tab[['condition']])
     conditions_to_completely_exclude = include_tab[['condition']][!(include_tab[['condition']] %in% gene_set_prediction_conditions)]
