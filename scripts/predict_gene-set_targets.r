@@ -660,7 +660,7 @@ if (load_point < 5) {
         print(str(all_pvals_zscores))
         per_gene_set_worst_case_mats = list(worst_pval = all_pvals_zscores[['per_gene_set']][[controls[1]]][['pval']],
                                             worst_zscore = all_pvals_zscores[['per_gene_set']][[controls[1]]][['zscore']],
-                                            control_name = matrix(controls[1], nrow = dim(all_pvals_zscores[['per_gene_set']][[controls[1]]])[1], ncol = dim(all_pvals_zscores[['per_gene_set']][[controls[1]]])[2], dimnames = dimnames(all_pvals_zscores[['per_gene_set']][[controls[1]]]))
+                                            control_name = matrix(controls[1], nrow = dim(all_pvals_zscores[['per_gene_set']][[controls[1]]][['pval']])[1], ncol = dim(all_pvals_zscores[['per_gene_set']][[controls[1]]][['pval']])[2], dimnames = dimnames(all_pvals_zscores[['per_gene_set']][[controls[1]]]))
                                             )
     } else {
         stop(sprintf('Not sure how this happened, as there are %s control types when there should be either 1 or 2', length(controls)))
