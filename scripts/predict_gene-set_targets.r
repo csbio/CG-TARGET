@@ -186,14 +186,30 @@ if (load_point < 1) {
                                                          )
     gene_prediction_tab = fread(sprintf('gzip -dc %s', gene_pred_file), header = TRUE, colClasses = c('character', 'character', 'character', 'numeric'))
 
-    rand_gene_pred_file = get_gene_target_prediction_resampled_filename(
-                              gene_pred_folder,
-                              config_params$Required_arguments$`per-array_resampling_scheme`,
-                              config_params$Required_arguments$`num_per-array_resampled_profiles`,
-                              config_params$Required_arguments$`per-array_resampling_seed`,
-                              config_params$Required_arguments$cg_gi_similarity_measure
-                              )
-    rand_gene_prediction_tab = fread(sprintf('gzip -dc %s', rand_gene_pred_file), header = TRUE, colClasses = c('character', 'character', 'character', 'numeric'))
+    # Since the user can specify not to use the resampled profiles derived
+    # from the entire dataset, here I start dealing with that. The code
+    # will look a bit clunky, but this will be more reliable/predictable
+    # than the alternative of creating an empty data.table to funnel
+    # through all of the same steps. That will likely wreak havoc.
+    zero_resampled_profiles = (config_params$Required_arguments$`per-array_resampling_scheme` == 0) | (config_params$Required_arguments$`num_per-array_resampled_profiles`== 0)
+
+    if (!zero_resampled_profiles) {
+
+        rand_gene_pred_file = get_gene_target_prediction_resampled_filename(
+                                  gene_pred_folder,
+                                  config_params$Required_arguments$`per-array_resampling_scheme`,
+                                  config_params$Required_arguments$`num_per-array_resampled_profiles`,
+                                  config_params$Required_arguments$`per-array_resampling_seed`,
+                                  config_params$Required_arguments$cg_gi_similarity_measure
+                                  )
+        rand_gene_prediction_tab = fread(sprintf('gzip -dc %s', rand_gene_pred_file), header = TRUE, colClasses = c('character', 'character', 'character', 'numeric'))
+    } else {
+
+        # If there are no resampled profiles, make sure that the config_params,
+        # which are used later in the script, accurately reflect that.
+        config_params$Required_arguments$`per-array_resampling_scheme` = 0
+        config_params$Required_arguments$`num_per-array_resampled_profiles` = 0
+    }
 
     sample_table_filename = config_params$Required_arguments$cg_col_info_table
     sample_table = fread(sample_table_filename, header = TRUE, colClasses = 'character')
@@ -282,9 +298,14 @@ if (load_point < 1) {
         condition_name_tab = sample_table[, list(condition = sprintf('%s_%s', screen_name, expt_id), condition_name = sample_table[[cond_name_col]])]
         
         # The condition_tab needs to have rand-by-strain conditions added so the join
-        # doesn't cause use to lose all or the rand-by-strain conditions!
-        rand_condition_name_tab = unique(rand_gene_prediction_tab[, list(screen_name, expt_id)])[, list(condition = sprintf('%s_%s', screen_name, expt_id), condition_name = sprintf('%s_%s', screen_name, expt_id))]
-        condition_name_tab = rbind(condition_name_tab, rand_condition_name_tab)
+        # doesn't cause us to lose all or the rand-by-strain conditions!
+        # **But only if there is a table of rand-by-strain (resampled) gene target
+        # predictions!**
+        if (!zero_resampled_profiles) {
+            rand_condition_name_tab = unique(rand_gene_prediction_tab[, list(screen_name, expt_id)])[, list(condition = sprintf('%s_%s', screen_name, expt_id), condition_name = sprintf('%s_%s', screen_name, expt_id))]
+            condition_name_tab = rbind(condition_name_tab, rand_condition_name_tab)
+        }
+
         print(condition_name_tab)
     } else {
         condition_name_tab = NULL
@@ -300,18 +321,29 @@ if (load_point < 1) {
 
     ###### Smash some data around
     gene_prediction_mat = acast(gene_prediction_tab, screen_name + expt_id ~ query_key, value.var = 'score')
-    rand_gene_prediction_mat = acast(rand_gene_prediction_tab, screen_name + expt_id ~ query_key, value.var = 'score')
-    all_prediction_mat = rbind(gene_prediction_mat, rand_gene_prediction_mat)
+    if (!zero_resampled_profiles) {
+        rand_gene_prediction_mat = acast(rand_gene_prediction_tab, screen_name + expt_id ~ query_key, value.var = 'score')
+        all_prediction_mat = rbind(gene_prediction_mat, rand_gene_prediction_mat)
+    
+        ###### Line up the control vectors to the matrix with all predictions
+        rand_control_map = rep('rand-by-strain', dim(unique(rand_gene_prediction_tab[, list(screen_name, expt_id)]))[1])
+        names(rand_control_map) = unique(rand_gene_prediction_tab[, sprintf('%s_%s', screen_name, expt_id)])
+        
+        # Don't need these!
+        rm(rand_gene_prediction_tab)
+        rm(rand_gene_prediction_mat)
+
+    } else {
+        all_prediction_mat = gene_prediction_mat
+    }
+
+    # Don't need these!
+    rm(gene_prediction_tab)
+    rm(gene_prediction_mat)
+
     #all_prediction_tab = rbind(gene_prediction_tab, rand_gene_prediction_tab)
     #all_prediction_mat = acast(all_prediction_tab, screen_name + expt_id ~ query_key, value.var = 'score')
 
-    ###### Line up the control vectors to the matrix with all predictions
-    rand_control_map = rep('rand-by-strain', dim(unique(rand_gene_prediction_tab[, list(screen_name, expt_id)]))[1])
-    names(rand_control_map) = unique(rand_gene_prediction_tab[, sprintf('%s_%s', screen_name, expt_id)])
-
-    ###### Remove the large tables that do not need to exist anymore!
-    rm(gene_prediction_tab)
-    rm(rand_gene_prediction_tab)
 
     gc()
 
@@ -336,15 +368,24 @@ if (load_point < 2) {
 
 
     # Check for real and random conditions overlapping (should NEVER happen)
-    print(control_map[1:10])
-    print(rand_control_map[1:10])
-    overlap_conds = intersect(names(control_map), names(rand_control_map))
-    if (length(overlap_conds) > 0) {
-        stop(sprintf('The following real and random conditions have the same name:\n%s', paste(overlap_conds, collapse = '\n')))
+    # Only check if there are "random" (really, "resampled") conditions
+    if (!zero_resampled_profiles) {
+        print(control_map[1:10])
+        print(rand_control_map[1:10])
+        overlap_conds = intersect(names(control_map), names(rand_control_map))
+        if (length(overlap_conds) > 0) {
+            stop(sprintf('The following real and random conditions have the same name:\n%s', paste(overlap_conds, collapse = '\n')))
+        }
     }
 
     # Combine the control maps and get one master control type vector!!!
-    all_control_map = c(control_map, rand_control_map)
+    if (!zero_resampled_profiles) {
+    
+        all_control_map = c(control_map, rand_control_map)
+    } else {
+        all_control_map = control_map
+    }
+
     all_control_vec = all_control_map[rownames(all_prediction_mat)]
     print(all_control_vec)
     print(sprintf('Number of %s conditions: %s', names(table(all_control_vec)), table(all_control_vec)))
@@ -392,6 +433,8 @@ if (load_point < 2) {
     }
 
     ###### Determine which sample types exist and will be used to make predictions
+    # At some point, should the user be able to specify this instead of just assuming
+    # that everything needs to have its target predicted?
     sample_types_to_predict_for <- unique(all_control_vec)
 
     #########################
@@ -556,7 +599,18 @@ if (load_point == 2) {
 # loaded in somewhere before this code and must be processed
 # to completion!)
 if (load_point < 3) {
-    per_gene_set_pvals_zscores = compute_per_gene_set_pvals_zscores(condition_subset_gene_set_pred_sum_mat, control_gene_set_pred_sum_mat_list, control_gene_set_pred_sum_means_list, control_gene_set_pred_sum_stdevs_list, controls)
+
+    if (!(is.null(neg_control_col) & zero_resampled_profiles)) {
+
+        # Only compute per-gene-set scores if negative control and/or
+        # resampled profiles are present. Otherwise, skip and replace
+        # with a reasonable data structure.
+        per_gene_set_pvals_zscores = compute_per_gene_set_pvals_zscores(condition_subset_gene_set_pred_sum_mat, control_gene_set_pred_sum_mat_list, control_gene_set_pred_sum_means_list, control_gene_set_pred_sum_stdevs_list, controls)
+    } else {
+
+        # Else, this list is just NULL instead. To be dealt with later.
+        per_gene_set_pvals_zscores = NULL
+    }
 
 }
 
@@ -597,8 +651,19 @@ if (load_point < 4) {
 
     # Combine results into a final list and remove the individual lists
     all_pvals_zscores = list(per_gene_set = per_gene_set_pvals_zscores, per_condition = per_condition_pvals_zscores)
-    rm(per_gene_set_pvals_zscores)
-    rm(per_condition_pvals_zscores)
+
+    # Remove any components of the list that are NULL. If both
+    # are NULL, stop the code with an error since we need at
+    # least one set of p-values and z-scores to move on.
+    all_pvals_zscores = all_pvals_zscores[!vapply(all_pvals_zscores, is.null, logical(1))]
+
+    if (length(all_pvals_zscores) == 0) {
+
+        stop('There are no computed p-values/z-scores, from either the per-gene-set or per-condition analyses, with which to move forward. Please check your config file and your data to ensure you either have generated resampled profiles and/or have enough negative control profiles for per-gene-set analyses, and/or you have set the number of per-condition randomizations to a value greater than zero.')
+    }
+
+    if(!is.null(per_gene_set_pvals_zscores)) rm(per_gene_set_pvals_zscores)
+    if(!is.null(per_condition_pvals_zscores)) rm(per_condition_pvals_zscores)
     gc()
 
 }
@@ -635,15 +700,15 @@ if (load_point < 5) {
     print(str(all_pvals_zscores))
     print(controls)
 
-    print(which(is.na(all_pvals_zscores[['per_gene_set']][[controls[1]]][['pval']]), arr.ind = TRUE))
-    print(sum(is.na(all_pvals_zscores[['per_gene_set']][[controls[1]]][['pval']])))
+    #print(which(is.na(all_pvals_zscores[['per_gene_set']][[controls[1]]][['pval']]), arr.ind = TRUE))
+    #print(sum(is.na(all_pvals_zscores[['per_gene_set']][[controls[1]]][['pval']])))
 
-    print(which(is.na(all_pvals_zscores[['per_gene_set']][[controls[1]]][['zscore']]), arr.ind = TRUE))
-    print(sum(is.na(all_pvals_zscores[['per_gene_set']][[controls[1]]][['zscore']])))
+    #print(which(is.na(all_pvals_zscores[['per_gene_set']][[controls[1]]][['zscore']]), arr.ind = TRUE))
+    #print(sum(is.na(all_pvals_zscores[['per_gene_set']][[controls[1]]][['zscore']])))
 
-    bad_go_term_inds = unique(which(is.na(all_pvals_zscores[['per_gene_set']][[controls[1]]][['zscore']]), arr.ind = TRUE)[, 2])
-    print(str(gene_set_matrix[, bad_go_term_inds]))
-    print(colSums(gene_set_matrix[, bad_go_term_inds]))
+    #bad_go_term_inds = unique(which(is.na(all_pvals_zscores[['per_gene_set']][[controls[1]]][['zscore']]), arr.ind = TRUE)[, 2])
+    #print(str(gene_set_matrix[, bad_go_term_inds]))
+    #print(colSums(gene_set_matrix[, bad_go_term_inds]))
 
     #print(which(is.na(all_pvals_zscores[['per_gene_set']][[controls[2]]][['pval']])))
     #print(which(is.na(all_pvals_zscores[['per_gene_set']][[controls[2]]][['zscore']])))
@@ -662,23 +727,54 @@ if (load_point < 5) {
                                             worst_zscore = all_pvals_zscores[['per_gene_set']][[controls[1]]][['zscore']],
                                             control_name = matrix(controls[1], nrow = dim(all_pvals_zscores[['per_gene_set']][[controls[1]]][['pval']])[1], ncol = dim(all_pvals_zscores[['per_gene_set']][[controls[1]]][['pval']])[2], dimnames = dimnames(all_pvals_zscores[['per_gene_set']][[controls[1]]]))
                                             )
-    } else {
+    } else if (length(all_pvals_zscores[['per_gene_set']]) > 2) {
+
+        # Since this code can now tolerate having no per_gene_set-
+        # derived predictions, it's only a problem if there are
+        # too many control types - more than there should be.
         stop(sprintf('Not sure how this happened, as there are %s control types when there should be either 1 or 2', length(controls)))
     }
 
     # get worst overall pvals/zscores (worst between
-    # per-gene-set and per-condition
-    overall_worst_case_mats <- get_worst_case_pval_zscore(per_gene_set_worst_case_mats$worst_pval,
-                                                          per_gene_set_worst_case_mats$worst_zscore,
-                                                          all_pvals_zscores$per_condition$pval,
-                                                          all_pvals_zscores$per_condition$zscore,
-                                                          'per_gene_set',
-                                                          'per_condition'
-                                                          ) 
+    # per-gene-set and per-condition, but ONLY if
+    # there are both per_gene_set pvals/zscores and
+    # per_condition pvals/zscores)
+    if (length(all_pvals_zscores[['per_gene_set']]) == 0) {
+
+        # If there are no per-gene-set predictions, then we just use
+        # the per-condition predictions.
+        overall_worst_case_mats = list(worst_pval = all_pvals_zscores[['per_condition']][['pval']],
+                                       worst_zscore = all_pvals_zscores[['per_condition']][['zscore']],
+                                       control_name = matrix('per_condition', nrow = dim(all_pvals_zscores[['per_condition']][['pval']])[1], ncol = dim(all_pvals_zscores[['per_condition']][['pval']])[2], dimnames = dimnames(all_pvals_zscores[['per_condition']][['pval']]))
+                                       )
+
+    } else if (length(all_pvals_zscores[['per_condition']]) == 0) {
+        
+        # Same thing for per-condition predictions
+        overall_worst_case_mats = list(worst_pval = per_gene_set_worst_case_mats[['worst_pval']],
+                                       worst_zscore = per_gene_set_worst_case_mats[['worst_zscore']],
+                                       control_name = matrix('per_gene_set', nrow = dim(all_pvals_zscores[['per_gene_set']][['pval']])[1], ncol = dim(all_pvals_zscores[['per_gene_set']][['pval']])[2], dimnames = dimnames(all_pvals_zscores[['per_gene_set']][['pval']]))
+                                       )
+    } else {
+
+        # Otherwise, there is at least one per-condition and one per-gene-set
+        # set of statistics, this is how to combine them.
+        overall_worst_case_mats <- get_worst_case_pval_zscore(per_gene_set_worst_case_mats$worst_pval,
+                                                              per_gene_set_worst_case_mats$worst_zscore,
+                                                              all_pvals_zscores$per_condition$pval,
+                                                              all_pvals_zscores$per_condition$zscore,
+                                                              'per_gene_set',
+                                                              'per_condition'
+                                                              )
+    }
+
     # Specify which per-gene-set scheme was used if the worst pval/zscore
-    # was generated using the per-gene-set scheme
-    per_gene_set_indices <- overall_worst_case_mats$control_name == 'per_gene_set'
-    overall_worst_case_mats$control_name[per_gene_set_indices] <- per_gene_set_worst_case_mats$control_name[per_gene_set_indices]
+    # was generated using the per-gene-set scheme. But if there are no
+    # per_gene_set indices, then don't do it!
+    if (exists('per_gene_set_worst_case_mats')) {
+        per_gene_set_indices <- overall_worst_case_mats$control_name == 'per_gene_set'
+        overall_worst_case_mats$control_name[per_gene_set_indices] <- per_gene_set_worst_case_mats$control_name[per_gene_set_indices]
+    }
 }
 
 # Save/load point 5!

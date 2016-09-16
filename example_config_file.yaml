@@ -35,7 +35,10 @@ Required_arguments :
     # Choose "1" to sample from the actual data for each array or "2"
     # to sample from normal distributions with mean and standard
     # deviation calculated for each array in the chemical-genetic
-    # interaction dataset.
+    # interaction dataset. Choose "0" (or set
+    # "num_per-array_resampled_profiles to 0) to forgo generating the
+    # resampledprofiles and rely only on per-condition randomization
+    # for p-value computation.
     per-array_resampling_scheme         : 1
     per-array_resampling_seed           : 54321
     # A good number is 10000
