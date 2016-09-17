@@ -34,6 +34,14 @@ config_f = file(arg[1], 'rt')
 config_params = yaml.load_file(config_f)
 close(config_f)
 
+# Stop everything if the per-array_resampling_scheme is 0, or if the number
+# of resampled profiles to generate is 0!
+zero_resampled_profiles = (config_params$Required_arguments$`per-array_resampling_scheme` == 0) | (config_params$Required_arguments$`num_per-array_resampled_profiles`== 0)
+if (zero_resampled_profiles) {
+    warning('Config file specifies that no resampled profiles should be generated.\nThis is script is therefore unnecessary.\nExiting now.')
+    quit('no')
+}
+
 # Read in as a data table
 cg_dt <- fread(sprintf('gzip -dc %s', config_params$Required_arguments$cg_data_table), header = TRUE, colClasses = c('character', 'character','character','character','numeric'))
 cg_row_tab = fread(config_params$Required_arguments$cg_row_info_table, header = TRUE, colClasses = 'character')
@@ -94,7 +102,7 @@ if (config_params$Required_arguments$`per-array_resampling_scheme` == 1) {
 } else if (config_params$Required_arguments$`per-array_resampling_scheme` == 2) {
     rand_dt <- cg_dt[, list(screen_name = combined_screen_name, expt_id = sprintf('%06d', 1:n), score = rnorm(n, mean(score, na.rm = TRUE), sd = sd(score, na.rm = TRUE))), by = list(Strain_ID, Barcode)]
 } else {
-    stop('"per-array_resampling_scheme" was given, but value was not "1" or "2"!')
+    stop('"per-array_resampling_scheme" was given, but value was not "0", "1", or "2"!')
 }
 setcolorder(rand_dt, c('Strain_ID', 'Barcode', 'screen_name', 'expt_id', 'score'))
 

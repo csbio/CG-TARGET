@@ -29,6 +29,13 @@ get_gene_set_target_prediction_folder = function(outdir) {
 }
 
 get_gene_set_target_prediction_filename = function(folder, rand_scheme, num_rand, seed, similarity, per_cond_seed, per_cond_num_rand, gene_set_name, test_run) {
+    # If either the randomization scheme or the number of randomizations
+    # is set to zero, then set both to zero, including the seed!
+    if (rand_scheme == 0 | num_rand == 0) {
+        rand_scheme = 0
+        num_rand = 0
+        seed = 0
+    }
     file.path(folder, sprintf('gene_set_target_prediction_resampled-%s_%s-rands_seed-%s_%s_per-cond-seed-%s_%s-per-cond-rands_%s-gene-sets.txt.gz', rand_scheme, num_rand, seed, similarity,  per_cond_seed, per_cond_num_rand, gene_set_name, ifelse(test_run, 'test-run', '')))
 }
 

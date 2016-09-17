@@ -124,37 +124,57 @@ if (!is.null(treatment_column)) {
 }
 
 
+# This is specific to FDR scheme 1
+fdr_scheme = config_params$Required_arguments$FDR_estimation_scheme
 
-# Get top prediction for each condition
-top_pval_zscore_dt <- get_top_prediction_per_condition(gene_set_prediction_tab)
-if (!is.null(gene_set_prediction_tab_split_out)) {
-    top_pval_zscore_dt_split_out <- get_top_prediction_per_condition(gene_set_prediction_tab_split_out)
+if (fdr_scheme == 1) {
+    # Get top prediction for each condition
+    top_pval_zscore_dt <- get_top_prediction_per_condition(gene_set_prediction_tab)
+    if (!is.null(gene_set_prediction_tab_split_out)) {
+        top_pval_zscore_dt_split_out <- get_top_prediction_per_condition(gene_set_prediction_tab_split_out)
+    }
+
+    # Add scaled counts per type of sample (Treatment, DMSO, Rand-by-strain)
+    top_pval_zscore_dt <- add_top_discovery_counts(top_pval_zscore_dt)
+
+    print(top_pval_zscore_dt)
+
+    # Plot discoveries vs p value
+    plot_discoveries_vs_pval(top_pval_zscore_dt, 'discoveries_vs_pval', final_plots_dir)
+
+    # Calculate FDRs and get a p value to FDR map
+    pval_fdr_dt <- get_pval_fdr_mapping(top_pval_zscore_dt)
+
+    ## Join FDR to top and all process prediction tables
+    sample_types <- unique(top_pval_zscore_dt[['sample_type']])
+    treatment <- 'treatment'
+    controls <- sample_types[sample_types != treatment]
+    top_pval_zscore_dt <- add_fdr(top_pval_zscore_dt, pval_fdr_dt, controls)
+    gene_set_prediction_tab <- add_fdr(gene_set_prediction_tab, pval_fdr_dt, controls)
+    if (!is.null(gene_set_prediction_tab_split_out)) {
+        gene_set_prediction_tab_split_out <- add_fdr(gene_set_prediction_tab_split_out, pval_fdr_dt, controls)
+    }
+
+    # Plot FDR vs discoveries per FDR type
+    plot_fdr_vs_discoveries(top_pval_zscore_dt, controls, 'fdr_vs_discoveries', final_plots_dir)
+
+} else if (fdr_scheme == 2) {
+
+    col_names_raw = names(gene_set_prediction_tab)
+    col_order = c('p_value', 'BH_FDR', col_names_raw[col_names_raw != 'p_value'])
+    gene_set_prediction_tab[, BH_FDR := p.adjust(p_value, 'BH'), by = condition]
+    setcolorder(gene_set_prediction_tab, col_order)
+    if (!is.null(gene_set_prediction_tab_split_out)) {
+        gene_set_prediction_tab_split_out[, BH_FDR := p.adjust(p_value, 'BH'), by = condition]
+        setcolorder(gene_set_prediction_tab_split_out, col_order)
+    }
+
+    
+} else {
+
+    stop('Valid values for the FDR_estimation_scheme parameter are 1 or 2 -- not "%s", as specified in the given config file.', fdr_scheme)
+
 }
-
-# Add scaled counts per type of sample (Treatment, DMSO, Rand-by-strain)
-top_pval_zscore_dt <- add_top_discovery_counts(top_pval_zscore_dt)
-
-print(top_pval_zscore_dt)
-
-# Plot discoveries vs p value
-plot_discoveries_vs_pval(top_pval_zscore_dt, 'discoveries_vs_pval', final_plots_dir)
-
-# Calculate FDRs and get a p value to FDR map
-pval_fdr_dt <- get_pval_fdr_mapping(top_pval_zscore_dt)
-
-## Join FDR to top and all process prediction tables
-sample_types <- unique(top_pval_zscore_dt[['sample_type']])
-treatment <- 'treatment'
-controls <- sample_types[sample_types != treatment]
-top_pval_zscore_dt <- add_fdr(top_pval_zscore_dt, pval_fdr_dt, controls)
-gene_set_prediction_tab <- add_fdr(gene_set_prediction_tab, pval_fdr_dt, controls)
-if (!is.null(gene_set_prediction_tab_split_out)) {
-    gene_set_prediction_tab_split_out <- add_fdr(gene_set_prediction_tab_split_out, pval_fdr_dt, controls)
-}
-
-# Plot FDR vs discoveries per FDR type
-plot_fdr_vs_discoveries(top_pval_zscore_dt, controls, 'fdr_vs_discoveries', final_plots_dir)
-
 
 # Split the gene set target predictions into treatment, expt_control, and random tables
 gene_set_prediction_tab_treatment = gene_set_prediction_tab[sample_type == 'treatment']
