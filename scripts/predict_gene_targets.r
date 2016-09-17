@@ -43,6 +43,16 @@ close(config_f)
 # Read in the CG data
 output_folder = config_params$Required_arguments$output_folder
 if (opt$rand) {
+
+    # Again, if the user has specified that no resampled profiles are to be generated...
+    # Stop everything!!!
+    zero_resampled_profiles = (config_params$Required_arguments$`per-array_resampling_scheme` == 0) | (config_params$Required_arguments$`num_per-array_resampled_profiles`== 0)
+    if (zero_resampled_profiles) {
+        warning('Config file specifies that no resampled profiles should be generated.\nSince no resampled profiles have been or will be generated, this\nscript to predict their gene targets using a genetic interaction\nnetwork is therefore unnecessary. Exiting now.')
+        quit('no')
+    }
+
+    
     folder = get_resampled_profile_folder(output_folder)
     cg_filename = get_resampled_profile_filename(folder,
                                                  config_params$Required_arguments$`per-array_resampling_scheme`,
@@ -122,7 +132,7 @@ print(predictions_tab)
 
 # Open a gzipped outfile connection
 out_dir = get_gene_target_folder(output_folder)
-dir.create(out_dir)
+dir.create(out_dir, recursive = TRUE)
 if (opt$rand) {
     out_filename = get_gene_target_prediction_resampled_filename(
                                 out_dir,

@@ -35,7 +35,10 @@ Required_arguments :
     # Choose "1" to sample from the actual data for each array or "2"
     # to sample from normal distributions with mean and standard
     # deviation calculated for each array in the chemical-genetic
-    # interaction dataset.
+    # interaction dataset. Choose "0" (or set
+    # "num_per-array_resampled_profiles to 0) to forgo generating the
+    # resampledprofiles and rely only on per-condition randomization
+    # for p-value computation.
     per-array_resampling_scheme         : 1
     per-array_resampling_seed           : 54321
     # A good number is 10000
@@ -43,6 +46,13 @@ Required_arguments :
     per-condition_randomization_seed    : 12345
     # This one takes the longest - a good number is 10000
     num_per-condition_randomizations    : 10000
+    # How do you want to estimate the false discovery rate?
+    # Choose "1" to estimate FDR using the entire dataset (using
+    # resampled and negative control profiles (whichever are
+    # available), or choose "2" to estimate FDR on a per-profile
+    # basis (better for smaller screens, uses the Benjamini-
+    # Hochberg correction).
+    FDR_estimation_scheme                       : 2
 Options :
     ################################################################
     per-array_randomization:
