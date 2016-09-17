@@ -209,6 +209,7 @@ if (load_point < 1) {
         # which are used later in the script, accurately reflect that.
         config_params$Required_arguments$`per-array_resampling_scheme` = 0
         config_params$Required_arguments$`num_per-array_resampled_profiles` = 0
+        config_params$Required_arguments$`per-array_resampling_seed` = 0
     }
 
     sample_table_filename = config_params$Required_arguments$cg_col_info_table
