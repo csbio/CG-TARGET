@@ -1,2 +1,2 @@
-dataset_name	gene_set_name	interpretable_column	gene_set_filename	md5_checksum	download_location	description
-SGA_DMA_array_no-supps_sig-only	GO-BP	GO_name	propagated_GO-BP_all-query-ORFs_header_names_size_4-200.txt	3e4f144017455ac47b601d788c0b48f1	http://lovelace.cs.umn.edu/ScottSimpkins/CG-TARGET/SGA_DMA_array_no-supps_sig-only/propagated_GO-BP_all-query-ORFs_header_names_size_4-200.txt	Propagated GO Biological Processes mapped from SGA query genes and propagated, then filtered so that terms had 4-200 gene annotations.
+gene_set_name	interpretable_column	gene_set_filename	md5_checksum	download_location	description
+GO-BP	GO_name	TEST_propagated_GO-BP_all-query-ORFs_header_names.txt	3e4f144017455ac47b601d788c0b48f1	http://lovelace.cs.umn.edu/ScottSimpkins/CG-TARGET/gene_sets/TEST_propagated_GO-BP_all-query-ORFs_header_names.txt	Propagated GO Biological Processes mapped from SGA query genes, size restricted to 4-200 (for now).

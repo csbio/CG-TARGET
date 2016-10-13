@@ -217,7 +217,7 @@ if (load_point < 1) {
 
     gene_set_name = config_params$Required_arguments$gene_set_name
     gi_data_name = config_params$Required_arguments$gi_dataset_name
-    gene_set_info = get_gene_set_info(gi_data_name, gene_set_name, TARGET_PATH)
+    gene_set_info = get_gene_set_info(gene_set_name, TARGET_PATH)
     print(gene_set_info)
     gene_set_tab_full = fread(gene_set_info$filename, header = TRUE, sep = '\t', colClasses = 'character')
     gene_set_gene_id_col = names(gene_set_tab_full)[1]
