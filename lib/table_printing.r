@@ -12,11 +12,11 @@ prettify_table = function(x) {
 
     x_mat = as.matrix(x)
 
-    print(x_mat)
+    #print(x_mat)
 
     x_titles = names(x)
     
-    print(x_titles)
+    #print(x_titles)
 
     # Get the column widths. This takes into account one border
     # for each cell, as well as the space padding on both sides.
@@ -25,7 +25,7 @@ prettify_table = function(x) {
     col_widths_init = apply(x, 2, function(y) max(nchar(y)))
     col_widths = pmax(col_widths_row_one, col_widths_init) + 3
 
-    print(col_widths)
+    #print(col_widths)
 
     # Determine the amount of padding (3 spaces per cell, plus
     # one extra
@@ -37,18 +37,18 @@ prettify_table = function(x) {
     description_width = max(min_description_width + 3,
                             ((max_total_width - 1) - sum(col_widths[x_titles != 'description'])))
 
-    print(col_widths[x_titles != 'description'])
-    print(sum(col_widths[x_titles != 'description']))
+    #print(col_widths[x_titles != 'description'])
+    #print(sum(col_widths[x_titles != 'description']))
 
     # Integrate description width back into the column widths!
     col_widths[x_titles == 'description'] = description_width
 
-    print(description_width)
+    #print(description_width)
 
     wrapped_description = strwrap(x_mat[, x_titles == 'description'], width = description_width - 3, simplify = FALSE)
     description_heights = vapply(wrapped_description, length, numeric(1))
 
-    print(wrapped_description)
+    #print(wrapped_description)
 
     num_rows = sum(description_heights) + length(description_heights) + 3
     num_cols = length(col_widths)
@@ -60,16 +60,16 @@ prettify_table = function(x) {
     # final matrix
     for (col_ind in 1:num_cols) {
 
-        message(1)
+        #message(1)
 
         # Turn the column into a list so I can easily index into it
         # and get back NA values when I need an extra row (due to
         # the wrapped description column that takes up multiple
         # rows per cell.
-        print(x_mat[, col_ind])
+        #print(x_mat[, col_ind])
         wrapped_cells = strwrap(x_mat[, col_ind], width = col_widths[col_ind] - 3, simplify = FALSE)
 
-        message(2)
+        #message(2)
 
         #if (x_titles[col_ind] == 'description') {
         #    col_list = wrapped_description
@@ -88,7 +88,7 @@ prettify_table = function(x) {
             bottom_border_string = sprintf('|%s', paste(rep('-', col_widths[col_ind] - 1), collapse = ''))
         }
 
-        message(3)
+        #message(3)
         
         # First, get the title set up
         

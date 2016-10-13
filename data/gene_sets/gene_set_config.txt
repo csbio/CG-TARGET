@@ -1,2 +1,2 @@
 gene_set_name	interpretable_column	gene_set_filename	md5_checksum	download_location	description
-GO-BP	GO_name	TEST_propagated_GO-BP_all-query-ORFs_header_names.txt	3e4f144017455ac47b601d788c0b48f1	http://lovelace.cs.umn.edu/ScottSimpkins/CG-TARGET/gene_sets/TEST_propagated_GO-BP_all-query-ORFs_header_names.txt	Propagated GO Biological Processes mapped from SGA query genes, size restricted to 4-200 (for now).
+S-cerevisiae_GO-BP	GO_name	TEST_propagated_GO-BP_all-query-ORFs_header_names.txt	3e4f144017455ac47b601d788c0b48f1	http://lovelace.cs.umn.edu/ScottSimpkins/CG-TARGET/gene_sets/TEST_propagated_GO-BP_all-query-ORFs_header_names.txt	Propagated GO Biological Processes mapped from SGA query genes, size restricted to 4-200 (for now).
