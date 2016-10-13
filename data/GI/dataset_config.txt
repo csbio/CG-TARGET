@@ -1,2 +1,2 @@
 dataset_name	data_table	row_info_table	row_info_tab_sys_name_col	col_info_table	col_info_tab_genename_col	download_location	md5_checksum	description
-SGA_DMA_array_no-supps_sig-only	epsilon_data.txt.gz	array_info.txt	array_orf	query_info.txt	query_genename	http://lovelace.cs.umn.edu/ScottSimpkins/CG-TARGET/SGA_DMA_array_no-supps_sig-only.tar.gz	21b5a3064fc98301aceff6e2439fc51c	
+SGA_DMA_array_no-supps_sig-only	epsilon_data.txt.gz	array_info.txt	array_orf	query_info.txt	query_genename	http://lovelace.cs.umn.edu/ScottSimpkins/CG-TARGET/GI/SGA_DMA_array_no-supps_sig-only.tar.gz	21b5a3064fc98301aceff6e2439fc51c	

@@ -168,6 +168,13 @@ get_gene_set_info = function(gene_set_name, software_dir) {
     
     gene_set_tab_filename = file.path(gene_set_dir, 'gene_set_config.txt')
     gene_set_tab = fread(gene_set_tab_filename, header = TRUE, sep = '\t')
+
+    # Here, must make sure that specified gene set is present in the list of
+    # acceptable gene sets!
+    if (!gene_set_name %in% gene_set_tab[['gene_set_name']]) {
+        stop('"gene_set_name" specified in the config file must be in the list of available gene sets.\nPlease run the command "gene_sets.r" in order to see the available gene sets.')
+    }
+
     setkeyv(gene_set_tab, 'gene_set_name')
 
     gene_set_filename = file.path(gene_set_dir, gene_set_tab[gene_set_name][['gene_set_filename']])
