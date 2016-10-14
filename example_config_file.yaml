@@ -27,10 +27,7 @@ Required_arguments :
     # to gene sets it is in.
     driver_cutoff                       : 2
     # Name to uniquely identify the type of gene_sets used as targets.
-    # See all available options by running either "gene_sets.r" or
-    # "gene_sets.r GI_DATASET". The first shows all gi datasets and
-    # their associated gene sets, and the second only shows the gene
-    # sets associated with GI_DATASET.
+    # See all available options by running "gene_sets.r"
     gene_set_name                       : S-cerevisiae_GO-BP
     # Choose "1" to sample from the actual data for each array or "2"
     # to sample from normal distributions with mean and standard
