@@ -228,6 +228,13 @@ if (load_point < 1) {
     print(gene_set_name_col)
     gene_set_tab = gene_set_tab_full[, c(gene_set_gene_id_col, gene_set_id_col), with = FALSE]
 
+    # Here, I read in the min and max allowable gene set sizes
+    min_term_size = as.numeric(config_params$Required_arguments$min_term_size)
+    max_term_size = as.numeric(config_params$Required_arguments$max_term_size)
+    if (is.na(min_term_size) | is.na(max_term_size)) {
+        stop('Required arguments "min_term_size" and/or "max_term_size" not specified\nproperly. Please specify as a number and re-run this script.')
+    }
+
     gi_info = get_gi_info(config_params$Required_arguments$gi_dataset_name, TARGET_PATH)
     #gi_tab = fread(sprintf('gzip -dc %s', gi_filenames$gi_tab))
     query_info_tab = fread(gi_info$gi_query_tab)
@@ -239,7 +246,7 @@ if (load_point < 1) {
     if (is.na(driver_cutoff)) { stop('driver_cutoff argument must be numeric.') }
 
     output_table_folder = get_gene_set_target_prediction_folder(output_folder)
-    output_table = get_gene_set_target_prediction_filename(
+    output_table = get_gene_set_target_prediction_filename_v2(
                        output_table_folder,
                        config_params$Required_arguments$`per-array_resampling_scheme`,
                        config_params$Required_arguments$`num_per-array_resampled_profiles`,
@@ -248,6 +255,8 @@ if (load_point < 1) {
                        config_params$Required_arguments$`per-condition_randomization_seed`,
                        config_params$Required_arguments$`num_per-condition_randomizations`,
                        config_params$Required_arguments$gene_set_name,
+                       config_params$Required_arguments$min_term_size,
+                       config_params$Required_arguments$max_term_size,
                        opt$test_run
                        )
 
@@ -477,6 +486,16 @@ if (load_point < 2) {
     gene_set_matrix = gene_set_matrix[, nonzero_degree_gene_set_inds, drop = FALSE]
     print(sprintf('Removed %s gene sets with no annotations', sum(!nonzero_degree_gene_set_inds)))
 
+    # Now, remove GO terms from the gene set matrix that do not meet the term size
+    # criteria in the configuration file.
+    term_size_pass = (colSums(gene_set_matrix) >= min_term_size) & (colSums(gene_set_matrix) <= max_term_size)
+    gene_set_matrix = gene_set_matrix[, term_size_pass, drop = FALSE]
+    print(sprintf('Removed %s gene sets with fewer than %s or greater than %s annotations', sum(!term_size_pass), min_term_size, max_term_size))
+
+    # Print out a list of the gene_sets actually used in this analysis (and the 
+    # annotations after filtering to only include the predicted gene-level targets).
+    # Also, make a plot of term size distribution.
+    
 
     # Get p values and zscores for each drug --> go combination
     # This will be done on a per-GO term and a per-drug basis, and

@@ -32,6 +32,11 @@ Required_arguments :
     # their associated gene sets, and the second only shows the gene
     # sets associated with GI_DATASET.
     gene_set_name                       : S-cerevisiae_GO-BP
+    # Set the minimum and maximum allowable sizes of the gene sets.
+    # This occurs after the gene set annotations are restricted to
+    # the set of gene targets.
+    min_term_size                       : 4
+    max_term_size                       : 200
     # Choose "1" to sample from the actual data for each array or "2"
     # to sample from normal distributions with mean and standard
     # deviation calculated for each array in the chemical-genetic
