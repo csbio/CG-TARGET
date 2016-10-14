@@ -101,13 +101,14 @@ get_gi_info = function(gi_name, software_dir) {
 
     # Get information for important dataset columns
     array_sys_name_col = dataset_tab[gi_name][['row_info_tab_sys_name_col']]
+    query_sys_name_col = dataset_tab[gi_name][['col_info_tab_sys_name_col']]
     query_genename_col = dataset_tab[gi_name][['col_info_tab_genename_col']]
     if(query_genename_col == '') {
         query_genename_col = NULL
     }
     
     return(list(gi_tab = table_filename, gi_array_tab = array_filename, gi_query_tab = query_filename,
-                array_sys_name_col = array_sys_name_col, query_genename_col = query_genename_col))
+                array_sys_name_col = array_sys_name_col, query_sys_name_col = query_sys_name_col, query_genename_col = query_genename_col))
 }
 
 download_gi_dataset = function(gi_name, gi_data_dir, dataset_tab, dataset_tab_filename) {

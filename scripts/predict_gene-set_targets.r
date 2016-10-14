@@ -257,6 +257,7 @@ if (load_point < 1) {
 
     ################### Load in optional files and options
     # Gene set ID to interpretable name table
+    # Might want to change this to "if (!gene_set_name_col == '')" instead of expecting it to be null or NA
     if (!is.null(gene_set_name_col)) {
         #gene_set_name_file = config_params$Options$gene_set_target_prediction$gene_set_name_table
         gene_set_name_tab = unique(gene_set_tab_full[, c(gene_set_id_col, gene_set_name_col), with = FALSE])
@@ -404,7 +405,11 @@ if (load_point < 2) {
     # max score came from.
 
     # First, get the vector of query genes that define where the multiple-allele cases are.
-    query_column = names(gene_set_tab)[1]
+    #print(gene_set_tab)
+    #print(query_info_tab)
+    # WHY DO I DRAW THE NAME OF THE QUERY COLUMN FROM THE GENE_SET_TAB?!
+    # Well now I don't :)
+    query_column = gi_info$query_sys_name_col
     query_map = query_info_tab[[query_column]]
     names(query_map) = query_info_tab[['query_key']]
     query_gene_vec = query_map[colnames(all_prediction_mat)]
