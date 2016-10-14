@@ -267,7 +267,8 @@ if (load_point < 1) {
     ################### Load in optional files and options
     # Gene set ID to interpretable name table
     # Might want to change this to "if (!gene_set_name_col == '')" instead of expecting it to be null or NA
-    if (!is.null(gene_set_name_col)) {
+    print(gene_set_name_col)
+    if (!gene_set_name_col == '') {
         #gene_set_name_file = config_params$Options$gene_set_target_prediction$gene_set_name_table
         gene_set_name_tab = unique(gene_set_tab_full[, c(gene_set_id_col, gene_set_name_col), with = FALSE])
         print(gene_set_name_tab)
@@ -488,9 +489,11 @@ if (load_point < 2) {
 
     # Now, remove GO terms from the gene set matrix that do not meet the term size
     # criteria in the configuration file.
-    term_size_pass = (colSums(gene_set_matrix) >= min_term_size) & (colSums(gene_set_matrix) <= max_term_size)
-    gene_set_matrix = gene_set_matrix[, term_size_pass, drop = FALSE]
-    print(sprintf('Removed %s gene sets with fewer than %s or greater than %s annotations', sum(!term_size_pass), min_term_size, max_term_size))
+    term_size_min_pass = (colSums(gene_set_matrix) >= min_term_size)
+    term_size_max_pass = (colSums(gene_set_matrix) <= max_term_size)
+    gene_set_matrix = gene_set_matrix[, term_size_min_pass & term_size_max_pass, drop = FALSE]
+    print(sprintf('Removed %s gene sets with fewer than %s annotations', sum(!term_size_min_pass), min_term_size))
+    print(sprintf('Removed %s gene sets with greater than %s annotations', sum(!term_size_max_pass), max_term_size))
 
     # Print out a list of the gene_sets actually used in this analysis (and the 
     # annotations after filtering to only include the predicted gene-level targets).
