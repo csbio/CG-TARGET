@@ -50,6 +50,22 @@ get_gene_set_target_prediction_filename_v2 = function(folder, rand_scheme, num_r
     file.path(folder, sprintf('gene_set_target_prediction_%s_%s_%s_%s_%s_%s_%s_%s-%s%s.txt.gz', rand_scheme, num_rand, seed, similarity, per_cond_seed, per_cond_num_rand, gene_set_name, min_termsize, max_termsize, ifelse(test_run, '_test-run', '')))
 }
 
+get_gene_set_target_prediction_terms_filename = function(folder, gene_set_name, min_termsize, max_termsize, test_run) {
+    
+    # This generates a file showing the gene sets that were actually used in the gene-set
+    # target prediction, once terms with too few or too many annotations were removed.
+    file.path(folder, sprintf('gene_sets_%s_%s-%s%s.txt', gene_set_name, min_termsize, max_termsize, ifelse(test_run, '_test-run', '')))
+}
+
+get_gene_set_hist_folder = function(outdir) {
+    x = get_gene_set_target_prediction_folder(outdir)
+    file.path(x, 'gene_sets_and stats')
+}
+
+get_gene_set_target_prediction_size_hist_file = function(folder, gene_set_name, min_termsize, max_termsize, test_run) {
+    file.path(folder, sprintf('gene_set_size_dist_%s_%s-%s%s.pdf', gene_set_name, min_termsize, max_termsize, ifelse(test_run, '_test-run', '')))
+}
+
 get_final_results_folder = function(outdir, gene_set_name) {
     file.path(outdir, 'final_results', gene_set_name)
 }

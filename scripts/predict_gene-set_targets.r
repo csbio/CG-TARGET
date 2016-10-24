@@ -32,7 +32,7 @@ source(file.path(TARGET_PATH, 'lib/zscore-pval_by-drug-and-goterm_fast.r'))
 source(file.path(TARGET_PATH, 'lib/pos_args.r'))
 source(file.path(TARGET_PATH, 'lib/filenames.r'))
 source(file.path(TARGET_PATH, 'lib/datasets.r'))
-
+source(file.path(TARGET_PATH, 'lib/scott_themes.r'))
 
 # print(sessionInfo())
 
@@ -261,6 +261,24 @@ if (load_point < 1) {
                        )
 
     dir.create(output_table_folder, recursive = TRUE)
+    
+    gene_set_hist_folder = get_gene_set_hist_folder(output_folder)
+    dir.create(gene_set_hist_folder)
+    gene_set_size_hist_file = get_gene_set_target_prediction_size_hist_file(
+                              gene_set_hist_folder,
+                              config_params$Required_arguments$gene_set_name,
+                              config_params$Required_arguments$min_term_size,
+                              config_params$Required_arguments$max_term_size,
+                              opt$test_run
+                              )
+
+    gene_set_out_tab = get_gene_set_target_prediction_terms_filename(
+                       gene_set_hist_folder,
+                       config_params$Required_arguments$gene_set_name,
+                       config_params$Required_arguments$min_term_size,
+                       config_params$Required_arguments$max_term_size,
+                       opt$test_run
+                       )
 
     true_false_control_map = c('TRUE' = 'expt_control', 'FALSE' = 'treatment', 'True' = 'expt_control', 'False' = 'treatment')
 
@@ -495,10 +513,46 @@ if (load_point < 2) {
     print(sprintf('Removed %s gene sets with fewer than %s annotations', sum(!term_size_min_pass), min_term_size))
     print(sprintf('Removed %s gene sets with greater than %s annotations', sum(!term_size_max_pass), max_term_size))
 
+    # Get a gene set annotation table filtered to contain only the query genes from the
+    # selected genetic interaction network and for which the terms pass the defined
+    # size criteria
+    accepted_gene_ids = as.character(row(gene_set_matrix, as.factor = TRUE))[gene_set_matrix == 1]
+    accepted_gene_set_ids = as.character(col(gene_set_matrix, as.factor = TRUE))[gene_set_matrix == 1]
+    print(str(accepted_gene_ids))
+    print(str(accepted_gene_set_ids))
+    accepted_annotation_tab = data.table(accepted_gene_ids, accepted_gene_set_ids)
+    setnames(accepted_annotation_tab, c(gene_set_gene_id_col, gene_set_id_col))
+    gene_set_tab_final = copy(gene_set_tab_full)
+    setkeyv(gene_set_tab_final, c(gene_set_gene_id_col, gene_set_id_col))
+    gene_set_tab_final = gene_set_tab_final[accepted_annotation_tab]
+    print(gene_set_tab_final)
+
+    # This is a check specific to protein complexes (couldn't get the more general
+    # version to work)
+    # print(gene_set_tab_final[, .N, by = list(complex)][, range(N)])
+    
     # Print out a list of the gene_sets actually used in this analysis (and the 
     # annotations after filtering to only include the predicted gene-level targets).
     # Also, make a plot of term size distribution.
+    write.table(gene_set_tab_final, gene_set_out_tab, quote = FALSE, sep = '\t', row.names = FALSE, col.names = TRUE)
     
+    ### Plot the gene set size distribution
+    setkeyv(gene_set_tab_final, gene_set_id_col)
+    gene_set_size_dist = gene_set_tab_final[, .N, by = gene_set_id_col]
+
+    gene_set_size_dist_plot = ggplot(gene_set_size_dist, aes(N)) +
+        geom_histogram() + 
+        scott_theme_1() +
+        labs(x = 'gene set size', y = 'frequency', title = sprintf('%s\ngene set size distribution', gene_set_name)) +
+        theme(axis.title.x = element_text(margin = margin(10, 0, 0, 0)),
+              axis.title.y = element_text(margin = margin(0, 10, 0, 0)),
+              plot.title = element_text(margin = margin(0, 0, 15, 0))
+              ) +
+        scale_y_continuous(expand = c(0, 0))
+
+    pdf(gene_set_size_hist_file)
+    print(gene_set_size_dist_plot)
+    dev.off()
 
     # Get p values and zscores for each drug --> go combination
     # This will be done on a per-GO term and a per-drug basis, and
