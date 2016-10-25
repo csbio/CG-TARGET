@@ -49,7 +49,11 @@ dir.create(final_plots_dir, recursive = TRUE)
 # Read in gene_set_predictions file (can let fread determine column classes, as the
 # condition ID is a concatenation of screen_name and expt_id.)
 gene_set_prediction_folder = get_gene_set_target_prediction_folder(output_folder)
-gene_set_prediction_filename = get_gene_set_target_prediction_filename(
+# Since I now have two versions of the gene_set_prediction_filename naming scheme,
+# I look for the most recent version first, then the older version, while issuing
+# a message stating that reading the old scheme does not take termsize into
+# account.
+gene_set_prediction_filename_v1 = get_gene_set_target_prediction_filename_v1(
                    gene_set_prediction_folder,
                    config_params$Required_arguments$`per-array_resampling_scheme`,
                    config_params$Required_arguments$`num_per-array_resampled_profiles`,
@@ -60,7 +64,27 @@ gene_set_prediction_filename = get_gene_set_target_prediction_filename(
                    config_params$Required_arguments$gene_set_name,
                    opt$test_run
                    )
-gene_set_prediction_tab = fread(sprintf('gzip -dc %s', gene_set_prediction_filename))
+gene_set_prediction_filename_v2 = get_gene_set_target_prediction_filename_v2(
+                   gene_set_prediction_folder,
+                   config_params$Required_arguments$`per-array_resampling_scheme`,
+                   config_params$Required_arguments$`num_per-array_resampled_profiles`,
+                   config_params$Required_arguments$`per-array_resampling_seed`,
+                   config_params$Required_arguments$cg_gi_similarity_measure,
+                   config_params$Required_arguments$`per-condition_randomization_seed`,
+                   config_params$Required_arguments$`num_per-condition_randomizations`,
+                   config_params$Required_arguments$gene_set_name,
+                   config_params$Required_arguments$min_term_size,
+                   config_params$Required_arguments$max_term_size,
+                   opt$test_run
+                   )
+if (file.exists(gene_set_prediction_filename_v2)) {
+    gene_set_prediction_tab = fread(sprintf('gzip -dc %s', gene_set_prediction_filename_v2))
+} else if (file.exists(gene_set_prediction_filename_v1)) {
+    gene_set_prediction_tab = fread(sprintf('gzip -dc %s', gene_set_prediction_filename_v1))
+    message('PLEASE NOTE: the process-level prediction file you are about to read in\nwas generated using an older version of CG-TARGET that did not specify\nthe gene set term sizes in the filename. If you generated the process-\nlevel prediction file using this version of CG-TARGET, please ensure that\n"predict_gene-set_target.r" ran successfuly.')
+} else {
+    stop(sprintf('The process-level prediction file at the location below does not exist.\nPlease ensure that the previous step in the pipeline, "predict_gene-set_targets.r",\nran successfully and/or the config parameters did not change between steps.\nMissing file:\n%s', gene_set_prediction_filename_v2))
+}
 
 # Take care of sample table argument
 true_false_vec = c('True' = TRUE, 'False' = FALSE, 'TRUE' = TRUE, 'FALSE' = FALSE)

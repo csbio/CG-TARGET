@@ -57,7 +57,7 @@ get_gi_info = function(gi_name, software_dir) {
     dataset_tab = fread(dataset_tab_filename, header = TRUE, sep = '\t')
     setkey(dataset_tab, dataset_name)
     
-    table_filename = file.path(dataset_dir, dataset_tab[gi_name][['matrix']])
+    table_filename = file.path(dataset_dir, dataset_tab[gi_name][['data_table']])
     array_filename = file.path(dataset_dir, dataset_tab[gi_name][['row_info_table']])
     query_filename = file.path(dataset_dir, dataset_tab[gi_name][['col_info_table']])
 
@@ -101,13 +101,14 @@ get_gi_info = function(gi_name, software_dir) {
 
     # Get information for important dataset columns
     array_sys_name_col = dataset_tab[gi_name][['row_info_tab_sys_name_col']]
+    query_sys_name_col = dataset_tab[gi_name][['col_info_tab_sys_name_col']]
     query_genename_col = dataset_tab[gi_name][['col_info_tab_genename_col']]
     if(query_genename_col == '') {
         query_genename_col = NULL
     }
     
     return(list(gi_tab = table_filename, gi_array_tab = array_filename, gi_query_tab = query_filename,
-                array_sys_name_col = array_sys_name_col, query_genename_col = query_genename_col))
+                array_sys_name_col = array_sys_name_col, query_sys_name_col = query_sys_name_col, query_genename_col = query_genename_col))
 }
 
 download_gi_dataset = function(gi_name, gi_data_dir, dataset_tab, dataset_tab_filename) {
@@ -161,18 +162,24 @@ download_gi_dataset = function(gi_name, gi_data_dir, dataset_tab, dataset_tab_fi
 }
 
 
-get_gene_set_info = function(gi_name, gene_set_name, software_dir) {
+get_gene_set_info = function(gene_set_name, software_dir) {
    
     gene_set_dir = file.path(software_dir, 'data', 'gene_sets')
-    gene_set_gi_dir = file.path(gene_set_dir, gi_name, gene_set_name)
-    dir.create(gene_set_gi_dir, recursive = TRUE)
+    dir.create(gene_set_dir, recursive = TRUE)
     
     gene_set_tab_filename = file.path(gene_set_dir, 'gene_set_config.txt')
     gene_set_tab = fread(gene_set_tab_filename, header = TRUE, sep = '\t')
-    setkeyv(gene_set_tab, c('dataset_name', 'gene_set_name'))
 
-    gene_set_gi_filename = file.path(gene_set_gi_dir, gene_set_tab[J(gi_name, gene_set_name)][['gene_set_filename']])
-    gene_set_interpretable_column = gene_set_tab[J(gi_name, gene_set_name)][['interpretable_column']]
+    # Here, must make sure that specified gene set is present in the list of
+    # acceptable gene sets!
+    if (!gene_set_name %in% gene_set_tab[['gene_set_name']]) {
+        stop('"gene_set_name" specified in the config file must be in the list of available gene sets.\nPlease run the command "gene_sets.r" in order to see the available gene sets.')
+    }
+
+    setkeyv(gene_set_tab, 'gene_set_name')
+
+    gene_set_filename = file.path(gene_set_dir, gene_set_tab[gene_set_name][['gene_set_filename']])
+    gene_set_interpretable_column = gene_set_tab[gene_set_name][['interpretable_column']]
     if(is.na(gene_set_interpretable_column)) {
         gene_set_interpretable_column = NULL
     }
@@ -182,9 +189,9 @@ get_gene_set_info = function(gi_name, gene_set_name, software_dir) {
     # and then check to see if the checksum matches the
     # expected one.
     download_dataset = TRUE
-    expected_md5 = gene_set_tab[J(gi_name, gene_set_name)][['md5_checksum']]
-    if (file.exists(gene_set_gi_filename)) {
-        downloaded_md5 = digest(file = gene_set_gi_filename, algo = 'md5')
+    expected_md5 = gene_set_tab[gene_set_name][['md5_checksum']]
+    if (file.exists(gene_set_filename)) {
+        downloaded_md5 = digest(file = gene_set_filename, algo = 'md5')
         #print(expected_md5)
         #print(downloaded_md5)
         if (expected_md5 == downloaded_md5) {
@@ -197,26 +204,26 @@ get_gene_set_info = function(gi_name, gene_set_name, software_dir) {
         # does but doesn't match the checksum, download
         # it!!! This function will overwrite the file if
         # it exists
-        download_location = gene_set_tab[J(gi_name, gene_set_name)][['download_location']]
-        download_gene_set_table(gi_name, gene_set_name, gene_set_gi_dir, gene_set_gi_filename, download_location)
+        download_location = gene_set_tab[gene_set_name][['download_location']]
+        download_gene_set_table(gene_set_name, gene_set_dir, gene_set_filename, download_location)
         
         # Now check again to see if md5 matches! If not, abort!!!
-        downloaded_md5 = digest(file = gene_set_gi_filename, algo = 'md5')
+        downloaded_md5 = digest(file = gene_set_filename, algo = 'md5')
         if (expected_md5 != downloaded_md5) {
-            file_preview = scan(gene_set_gi_filename, n = 10, what = character(), sep = '\n')
-            unlink(gene_set_gi_filename)
+            file_preview = scan(gene_set_filename, n = 10, what = character(), sep = '\n')
+            unlink(gene_set_filename)
             message('\n\n')
             stop(sprintf('\n\nUnable to download expected gene-set table from location:\n%s.\nPlease check that the username and password are correct and try again.\n\nPreview of offending gene-set file:\n\n%s\n\n', download_location, paste(file_preview, collapse = '\n')))
         }
     }
     
-    message(gene_set_gi_filename)
+    message(gene_set_filename)
     message(gene_set_interpretable_column)
     
-    return(list(filename = gene_set_gi_filename, interpretable_column = gene_set_interpretable_column))
+    return(list(filename = gene_set_filename, interpretable_column = gene_set_interpretable_column))
 }
 
-download_gene_set_table = function(gi_name, gene_set_name, gene_set_gi_dir, gene_set_gi_filename, download_location) {
+download_gene_set_table = function(gene_set_name, gene_set_dir, gene_set_filename, download_location) {
 
     #print(gene_set_tab)
     #print(gene_set_tab[J(gi_name, gene_set_name)])
@@ -224,7 +231,7 @@ download_gene_set_table = function(gi_name, gene_set_name, gene_set_gi_dir, gene
     #download_location = gene_set_tab[J(gi_name, gene_set_name)][['download_location']]
     if(is.null(download_location)) {
         message('\n\n')
-        stop(sprintf('File "%s" for gene set "%s" does not exist, and no download location was given in "%s"', gene_set_gi_filename, gene_set_name, gene_set_tab_filename))
+        stop(sprintf('File "%s" for gene set "%s" does not exist, and no download location was given in "%s"', gene_set_filename, gene_set_name, gene_set_tab_filename))
     }
     
     # Ask for username/password
@@ -252,6 +259,6 @@ download_gene_set_table = function(gi_name, gene_set_name, gene_set_gi_dir, gene
         download_loc_userpwd = download_location
     }
     
-    download.file(download_loc_userpwd, destfile = gene_set_gi_filename)
+    download.file(download_loc_userpwd, destfile = gene_set_filename)
     
 }
