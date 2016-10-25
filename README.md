@@ -101,13 +101,10 @@ After downloading the software and setting up your environment variables, it is 
 
 `gi_datasets.r`
 
-####View available gene sets and their associated genetic interaction datasets
-
-To view only the gene sets associated with a particular genetic interaction dataset, give the name of that genetic interaction dataset as an argument.
+####View available gene sets
 
 ```
 gene_sets.r
-gene_sets.r SGA_DMA_array_no-supps_sig-only
 ```
 
 ####Generate resampled profiles
