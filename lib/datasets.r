@@ -156,6 +156,11 @@ download_gi_dataset = function(gi_name, gi_data_dir, dataset_tab, dataset_tab_fi
         message('\n\n')
         stop(sprintf('\n\nUnable to untar/decompress expected genetic interaction dataset from location:\n%s.\nPlease check that the username and password are correct and try again.\n\nPreview of offending genetic interaction tarred folder:\n\n%s\n\n', download_location, paste(file_preview, collapse = '\n')))
     }
+    # Change the name of the untarred/gunzipped folder to match
+    # the CG-TARGET pipeline's name for the dataset
+    orig_dataset_folder = file.path(gi_data_dir, sub('.tar.gz', '', fixed = TRUE, basename(download_location)))
+    new_dataset_folder = file.path(gi_data_dir, gi_name)
+    file.rename(orig_dataset_folder, new_dataset_folder)
     #gunzip(dest_file)
     unlink(dest_file)
 
