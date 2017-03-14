@@ -108,8 +108,8 @@ gi_mat <- gi_mat[intersect_genes, ]
 # the set of common genes.
 # This causes problems with the similarity calculations, as each column is
 # divided by its norm (divide by zero problem).
-cg_mat = cg_mat[, colSums(abs(cg_mat)) != 0]
-gi_mat = gi_mat[, colSums(abs(gi_mat)) != 0]
+cg_mat = cg_mat[, colSums(abs(cg_mat), na.rm = TRUE) != 0]
+gi_mat = gi_mat[, colSums(abs(gi_mat), na.rm = TRUE) != 0]
 
 # Predict targets (calculate similarities between columns of gi_mat and cg_mat)
 # This uses the either 'cosine' similarity or 'dotcosine' similarity, the latter
