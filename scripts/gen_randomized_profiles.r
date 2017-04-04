@@ -54,7 +54,7 @@ setkeyv(cg_col_tab, c('screen_name', 'expt_id'))
 
 # If a cols_to_include column was specified, filter the row info table, which
 # is then used to filter the data themselves
-if (!is.null(config_params$Required_arguments$`per-array_randomization_include_column`)) {
+if (!is.null(config_params$Options$`per-array_randomization`$`per-array_randomization_include_column`)) {
     #I don't think I need this flag anymore...
     #if (arg$`per-array_randomization_include_column` == 'TRUE') {
     #    stop('The cols_to_include flag is present, but no argument is specified!')
@@ -65,7 +65,7 @@ if (!is.null(config_params$Required_arguments$`per-array_randomization_include_c
                   dim(unique(cg_dt[, list(Strain_ID, Barcode)], by = NULL))[1],
                   dim(unique(cg_dt[, list(screen_name, expt_id)], by = NULL))[1]))
     bool_vec = c(`True` = TRUE, `False` = FALSE, `TRUE` = TRUE, `FALSE` = FALSE)
-    select_rows = bool_vec[cg_col_tab[[config_params$Options$`per-array_randomization_include_column`]]]
+    select_rows = bool_vec[cg_col_tab[[config_params$Options$`per-array_randomization`$`per-array_randomization_include_column`]]]
     cg_col_tab = cg_col_tab[select_rows]
 }
 # Here is where the data are filtered. The filtering happens regardless of the
