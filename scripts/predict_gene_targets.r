@@ -69,7 +69,7 @@ cg_col_tab = fread(config_params$Required_arguments$cg_col_info_table, colClasse
 
 bool_vec = c(`True` = TRUE, `False` = FALSE, `TRUE` = TRUE, `FALSE` = FALSE)
 dummy_name = config_params$Options$dummy_dataset$name
-if (!is.null(dummy_name)) {
+if (!(is.null(dummy_name) | opt$rand)) {
     dummy_config_f = file(get_dummy_config_filename(dummy_name), 'rt')
     dummy_config_params = yaml.load_file(dummy_config_f)
     close(dummy_config_f)
