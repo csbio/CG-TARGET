@@ -80,6 +80,7 @@ dummy_name = config_params$Options$dummy_dataset$name
 if (!is.null(dummy_name)) {
     dummy_config_f = file(get_dummy_config_filename(dummy_name), 'rt')
     dummy_config_params = yaml.load_file(dummy_config_f)
+    close(dummy_config_f)
     dummy_dt = fread(sprintf('gzip -dc %s', file.path(get_dummy_folder(dummy_name), dummy_config_params$cg_data_table)), colClasses = c('character', 'character','character','character','numeric'))
     dummy_col_tab = fread(file.path(get_dummy_folder(dummy_name), dummy_config_params$cg_col_info_tab), header = TRUE, colClasses = 'character')
 
