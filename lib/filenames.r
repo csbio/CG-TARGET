@@ -8,8 +8,12 @@ get_resampled_profile_folder = function(outdir) {
     file.path(outdir, 'resampled_profiles')
 }
 
-get_resampled_profile_filename = function(folder, rand_scheme, num_rand, seed) {
-    file.path(folder, sprintf('resampled_profiles_scheme-%s_%s-rands_seed-%s.txt.gz', rand_scheme, num_rand, seed))
+get_resampled_profile_filename = function(folder) {
+    file.path(folder, 'resampled_profiles.txt.gz')
+}
+
+get_resampled_profile_config_filename = function(folder) {
+    file.path(folder, 'resampled_profiles_config.yaml')
 }
 
 get_gene_target_folder = function(outdir) {

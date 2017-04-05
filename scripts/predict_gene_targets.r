@@ -54,11 +54,7 @@ if (opt$rand) {
 
     
     folder = get_resampled_profile_folder(output_folder)
-    cg_filename = get_resampled_profile_filename(folder,
-                                                 config_params$Required_arguments$`per-array_resampling_scheme`,
-                                                 config_params$Required_arguments$`num_per-array_resampled_profiles`,
-                                                 config_params$Required_arguments$`per-array_resampling_seed`
-                                                 )
+    cg_filename = get_resampled_profile_filename(folder)
 } else {
     cg_filename = config_params$Required_arguments$cg_data_table
 }

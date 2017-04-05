@@ -108,11 +108,8 @@ setcolorder(rand_dt, c('Strain_ID', 'Barcode', 'screen_name', 'expt_id', 'score'
 
 out_dir = get_resampled_profile_folder(config_params$Required_arguments$output_folder)
 dir.create(out_dir, recursive = TRUE)
-out_filename = get_resampled_profile_filename(out_dir,
-                                              config_params$Required_arguments$`per-array_resampling_scheme`,
-                                              config_params$Required_arguments$`num_per-array_resampled_profiles`,
-                                              config_params$Required_arguments$`per-array_resampling_seed`
-                                              )
+
+out_filename = get_resampled_profile_filename(out_dir)
 of = gzfile(out_filename, 'wb')
 write.table(rand_dt, of, sep = '\t', quote = FALSE, row.names = FALSE, col.names = TRUE)
 close(of)
