@@ -17,6 +17,7 @@ source(file.path(TARGET_PATH, 'lib/table_to_globular.r'))
 source(file.path(TARGET_PATH, 'lib/pos_args.r'))
 source(file.path(TARGET_PATH, 'lib/scott_themes.r'))
 source(file.path(TARGET_PATH, 'lib/filenames.r'))
+source(file.path(TARGET_PATH, 'lib/dummy_dataset.r'))
 
 positional_arguments_list = c(CONFIG_FILE = 'yaml-formatted gene-set prediction configuration file.')
 option_list = list(make_option('--test_run', action = 'store_true', default = FALSE, help = 'Set this flag if you want to run the FDR estimation script on gene_set target predictions produced using the "--test_run" flag.'))
@@ -90,6 +91,36 @@ if (file.exists(gene_set_prediction_filename_v2)) {
 true_false_vec = c('True' = TRUE, 'False' = FALSE, 'TRUE' = TRUE, 'FALSE' = FALSE)
 sample_table_filename = config_params$Required_arguments$cg_col_info_table
 sample_table = fread(sample_table_filename, header = TRUE, colClasses = 'character')
+
+# Deal with the dummy dataset sample table, as in previous scripts
+dummy_name = config_params$Options$dummy_dataset$name
+if (!is.null(dummy_name)) {
+	dummy_config_f = file(get_dummy_config_filename(dummy_name), 'rt')
+	dummy_config_params = yaml.load_file(dummy_config_f)
+	close(dummy_config_f)
+	dummy_dt = fread(sprintf('gzip -dc %s', file.path(get_dummy_folder(dummy_name), dummy_config_params$cg_data_table)), colClasses = c('character', 'character','character','character','numeric'))
+	dummy_col_tab = fread(file.path(get_dummy_folder(dummy_name), dummy_config_params$cg_col_info_tab), header = TRUE, colClasses = 'character')
+
+	# If a column specifying negative experimental controls was specified, then use it
+	# to filter the dummy dataset. otherwise, do not use the dummy dataset here!
+	if (!is.null(config_params$Options$dummy_dataset$negative_control_column)) {
+		print(unique(dummy_dt[, list(Strain_ID, Barcode)], by = NULL))
+		print(unique(dummy_dt[, list(screen_name, expt_id)], by = NULL))
+		message(sprintf('dummy matrix dimensions before filtering for "cols_to_include": (%s, %s)',
+					  dim(unique(dummy_dt[, list(Strain_ID, Barcode)], by = NULL))[1],
+					  dim(unique(dummy_dt[, list(screen_name, expt_id)], by = NULL))[1]))
+		select_rows_dummy = true_false_vec[dummy_col_tab[[config_params$Options$dummy_dataset$negative_control_column]]]
+		dummy_col_tab = dummy_col_tab[select_rows_dummy]
+	}
+
+	# Create a final sample table with the dummy controls added in.
+	sample_table = add_dummy_controls_to_cg_sample_tab(sample_table,
+													   config_params$Options$gene_set_target_prediction$negative_control_column,
+													   config_params$Options$gene_set_target_prediction$condition_name_column,
+													   dummy_col_tab,
+													   config_params$Options$dummy_dataset$negative_control_column,
+													   config_params$Options$dummy_dataset$condition_name_column)
+}
 
 ######## Here, which samples are included in the analysis are determined
 ######## Also, it is determined here if there are conditions to "split out,"
