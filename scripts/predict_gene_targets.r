@@ -22,6 +22,7 @@ source(file.path(TARGET_PATH, 'lib/dot_cosine.r'))
 source(file.path(TARGET_PATH, 'lib/pos_args.r'))
 source(file.path(TARGET_PATH, 'lib/filenames.r'))
 source(file.path(TARGET_PATH, 'lib/datasets.r'))
+source(file.path(TARGET_PATH, 'lib/dummy_dataset.r'))
 
 positional_arguments_list = c(CONFIG_FILE = 'yaml-formatted gene-set prediction configuration file.')
 
@@ -60,16 +61,75 @@ if (opt$rand) {
 }
 
 cg_tab = fread(sprintf('gzip -dc %s', cg_filename), colClasses = c('character', 'character', 'character', 'character', 'numeric'))
-cg_row_tab = fread(config_params$Required_arguments$cg_row_info_table)
+cg_row_tab = fread(config_params$Required_arguments$cg_row_info_table, colClasses = 'character')
+cg_col_tab = fread(config_params$Required_arguments$cg_col_info_table, colClasses = 'character')
 
-# Read in the GI data
+# If a dummy dataset was specified, and it has experimental controls,
+# then add these into the dataset!
+
+bool_vec = c(`True` = TRUE, `False` = FALSE, `TRUE` = TRUE, `FALSE` = FALSE)
+dummy_name = config_params$Options$dummy_dataset$name
+if (!(is.null(dummy_name) | opt$rand)) {
+    dummy_config_f = file(get_dummy_config_filename(dummy_name), 'rt')
+    dummy_config_params = yaml.load_file(dummy_config_f)
+    close(dummy_config_f)
+    dummy_dt = fread(sprintf('gzip -dc %s', file.path(get_dummy_folder(dummy_name), dummy_config_params$cg_data_table)), colClasses = c('character', 'character','character','character','numeric'))
+    dummy_col_tab = fread(file.path(get_dummy_folder(dummy_name), dummy_config_params$cg_col_info_tab), header = TRUE, colClasses = 'character')
+
+    # If a column specifying negative experimental controls was specified, then use it
+	# to filter the dummy dataset. otherwise, do not use the dummy dataset here!
+    if (!is.null(config_params$Options$dummy_dataset$negative_control_column)) {
+        print(unique(dummy_dt[, list(Strain_ID, Barcode)], by = NULL))
+        print(unique(dummy_dt[, list(screen_name, expt_id)], by = NULL))
+        message(sprintf('dummy matrix dimensions before filtering for "cols_to_include": (%s, %s)',
+                      dim(unique(dummy_dt[, list(Strain_ID, Barcode)], by = NULL))[1],
+                      dim(unique(dummy_dt[, list(screen_name, expt_id)], by = NULL))[1]))
+        select_rows_dummy = bool_vec[dummy_col_tab[[config_params$Options$dummy_dataset$negative_control_column]]]
+        dummy_col_tab = dummy_col_tab[select_rows_dummy]
+    }
+
+    # Filter the dummy interactions to just the controls
+    setkeyv(dummy_col_tab, c('screen_name', 'expt_id'))
+    setkeyv(dummy_dt, c('screen_name', 'expt_id'))
+    dummy_col_key = dummy_col_tab[, list(screen_name, expt_id)]
+    dummy_dt = dummy_dt[dummy_col_key, nomatch = 0]
+    message(sprintf('Filtered dummy matrix dimensions: (%s, %s)',
+                  dim(unique(dummy_dt[, list(Strain_ID, Barcode)], by = NULL))[1],
+                  dim(unique(dummy_dt[, list(screen_name, expt_id)], by = NULL))[1]))
+
+    # Create a final sample table with the dummy controls added in.
+	cg_col_tab = add_dummy_controls_to_cg_sample_tab(cg_col_tab,
+                                                     config_params$Options$gene_set_target_prediction$negative_control_column,
+                                                     config_params$Options$gene_set_target_prediction$condition_name_column,
+                                                     dummy_col_tab,
+                                                     config_params$Options$dummy_dataset$negative_control_column,
+                                                     config_params$Options$dummy_dataset$condition_name_column)
+
+    # Now, combine the cg dataset with the dummy dataset controls, limiting to strains
+    # found in both datasets.
+    cg_strains = unique(cg_tab[, list(Barcode, Strain_ID)])
+    dummy_strains = unique(dummy_dt[, list(Barcode, Strain_ID)])
+    setkeyv(cg_strains, c('Barcode', 'Strain_ID'))
+    setkeyv(dummy_strains, c('Barcode', 'Strain_ID'))
+    strain_Barcode_intersect = cg_strains[dummy_strains, nomatch = 0]
+
+    setkeyv(cg_tab, c('Barcode', 'Strain_ID'))
+    setkeyv(dummy_dt, c('Barcode', 'Strain_ID'))
+    cg_tab = rbind(cg_tab[strain_Barcode_intersect], dummy_dt[strain_Barcode_intersect])
+}
+
+message(sprintf('Final CG matrix dimensions: (%s, %s)',
+                dim(unique(cg_tab[, list(Strain_ID, Barcode)], by = NULL))[1],
+                dim(unique(cg_tab[, list(screen_name, expt_id)], by = NULL))[1]))
+
+# read in the gi data
 gi_info = get_gi_info(config_params$Required_arguments$gi_dataset_name, TARGET_PATH)
 gi_tab = fread(sprintf('gzip -dc %s', gi_info$gi_tab))
 gi_array_tab = fread(gi_info$gi_array_tab)
 gi_to_cg_match_col = gi_info$array_sys_name_col
 
-# Shape the CG data into a matrix with the rownames coming from
-# the column that matches the GI data match column
+# shape the cg data into a matrix with the rownames coming from
+# the column that matches the gi data match column
 setkeyv(cg_tab, c('Strain_ID', 'Barcode'))
 setkeyv(cg_row_tab, c('Strain_ID', 'Barcode'))
 cg_tab[, condition_key := sprintf('%s_%s', screen_name, expt_id)]
@@ -79,43 +139,43 @@ cg_form = as.formula(sprintf('%s ~ %s', config_params$Required_arguments$cg_to_g
 cg_mat = acast(data = cg_tab, formula = cg_form, fill = 0, fun.aggregate = mean, na.rm = TRUE, value.var = 'score')
 print(str(cg_mat))
 
-# Shape the GI data into a matrix with the rownames coming from
-# the column that matches the CG data match column
+# shape the gi data into a matrix with the rownames coming from
+# the column that matches the cg data match column
 setkey(gi_tab, array_key)
 setkey(gi_array_tab, array_key)
 gi_tab = gi_tab[gi_array_tab[, c('array_key', gi_to_cg_match_col), with = FALSE], nomatch = 0, allow.cartesian = TRUE]
 print(gi_tab)
 gi_form = as.formula(sprintf('%s ~ %s', gi_to_cg_match_col, 'query_key'))
-# While the queries (columns) in the matrix should be unique, the arrays,
+# while the queries (columns) in the matrix should be unique, the arrays,
 # since they are defined only by a systematic gene name, could be duplicated
 # and will therefore be averaged if that is the case.
 gi_mat = acast(data = gi_tab, formula = gi_form, fill = 0, fun.aggregate = mean, na.rm = TRUE, value.var = 'score')
 print(str(gi_mat))
 
-# Filter the matrices for genes (rows/arrays) that do not exist
+# filter the matrices for genes (rows/arrays) that do not exist
 # in both, and unify the row order
 intersect_genes = intersect(rownames(cg_mat), rownames(gi_mat))
 cg_mat <- cg_mat[intersect_genes, ]
 gi_mat <- gi_mat[intersect_genes, ]
 
-# Filter out any columns in either matrix that do not have any interactions.
-# This would occur after intersecting the genes common to the cg and gi
+# filter out any columns in either matrix that do not have any interactions.
+# this would occur after intersecting the genes common to the cg and gi
 # profiles, if for a particular profile, no interactions were measured with
 # the set of common genes.
-# This causes problems with the similarity calculations, as each column is
+# this causes problems with the similarity calculations, as each column is
 # divided by its norm (divide by zero problem).
 cg_mat = cg_mat[, colSums(abs(cg_mat), na.rm = TRUE) != 0]
 gi_mat = gi_mat[, colSums(abs(gi_mat), na.rm = TRUE) != 0]
 
-# Predict targets (calculate similarities between columns of gi_mat and cg_mat)
-# This uses the either 'cosine' similarity or 'dotcosine' similarity, the latter
+# predict targets (calculate similarities between columns of gi_mat and cg_mat)
+# this uses the either 'cosine' similarity or 'dotcosine' similarity, the latter
 # of which normalizes the columns of the gi_matrix but not the cg_matrix
 predictions_mat = switch(config_params$Required_arguments$cg_gi_similarity_measure,
                          `cg-norm-dot` = dot_cos_sim(cg_mat, gi_mat, na.rm = TRUE),
                          cosine = cos_sim(cg_mat, gi_mat, na.rm = TRUE)
                          )
 
-# Melt the predictions back into a table and add the CG screen_name and expt_id
+# melt the predictions back into a table and add the cg screen_name and expt_id
 # columns back to the table!
 predictions_tab = data.table(melt(predictions_mat, varnames = c('condition_key', 'query_key'), value.name = 'score'))
 print(predictions_tab)
@@ -126,7 +186,7 @@ setkey(condition_tab, condition_key)
 predictions_tab = predictions_tab[condition_tab, nomatch = 0][, list(screen_name, expt_id, query_key, score)]
 print(predictions_tab)
 
-# Open a gzipped outfile connection
+# open a gzipped outfile connection
 out_dir = get_gene_target_folder(output_folder)
 dir.create(out_dir, recursive = TRUE)
 if (opt$rand) {

@@ -16,6 +16,14 @@ get_resampled_profile_config_filename = function(folder) {
     file.path(folder, 'resampled_profiles_config.yaml')
 }
 
+get_dummy_config_filename = function(name) {
+    file.path(get_dummy_folder(name), 'config.yaml')
+}
+
+get_dummy_folder = function(name) {
+    file.path(Sys.getenv('TARGET_PATH'), 'data', 'CG', name)
+}
+
 get_gene_target_folder = function(outdir) {
     file.path(outdir, 'gene_target_prediction')
 }

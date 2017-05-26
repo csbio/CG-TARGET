@@ -33,6 +33,7 @@ source(file.path(TARGET_PATH, 'lib/pos_args.r'))
 source(file.path(TARGET_PATH, 'lib/filenames.r'))
 source(file.path(TARGET_PATH, 'lib/datasets.r'))
 source(file.path(TARGET_PATH, 'lib/scott_themes.r'))
+source(file.path(TARGET_PATH, 'lib/dummy_dataset.r'))
 
 # print(sessionInfo())
 
@@ -302,6 +303,39 @@ if (load_point < 1) {
         if (! gene_name_column %in% names(query_info_tab)) {
             stop(sprintf('column %s was specified as the column in the query info table that contains interpretable gene names, but the columns does not exist! query info table is here:\n%s', gene_name_column, gi_info$gi_query_tab))
         }
+    }
+    
+    ################ Deal with the consequences of using a dummy dataset, if applicable ###############
+    # (must be done before pulling other information from sample table, as this modifies the sample
+    # table to include dummy controls, if they exist)
+    bool_vec = c(`True` = TRUE, `False` = FALSE, `TRUE` = TRUE, `FALSE` = FALSE)
+	dummy_name = config_params$Options$dummy_dataset$name
+	if (!is.null(dummy_name)) {
+		dummy_config_f = file(get_dummy_config_filename(dummy_name), 'rt')
+		dummy_config_params = yaml.load_file(dummy_config_f)
+		close(dummy_config_f)
+		dummy_dt = fread(sprintf('gzip -dc %s', file.path(get_dummy_folder(dummy_name), dummy_config_params$cg_data_table)), colClasses = c('character', 'character','character','character','numeric'))
+		dummy_col_tab = fread(file.path(get_dummy_folder(dummy_name), dummy_config_params$cg_col_info_tab), header = TRUE, colClasses = 'character')
+
+		# If a column specifying negative experimental controls was specified, then use it
+		# to filter the dummy dataset. otherwise, do not use the dummy dataset here!
+		if (!is.null(config_params$Options$dummy_dataset$negative_control_column)) {
+			print(unique(dummy_dt[, list(Strain_ID, Barcode)], by = NULL))
+			print(unique(dummy_dt[, list(screen_name, expt_id)], by = NULL))
+			message(sprintf('dummy matrix dimensions before filtering for "cols_to_include": (%s, %s)',
+						  dim(unique(dummy_dt[, list(Strain_ID, Barcode)], by = NULL))[1],
+						  dim(unique(dummy_dt[, list(screen_name, expt_id)], by = NULL))[1]))
+			select_rows_dummy = bool_vec[dummy_col_tab[[config_params$Options$dummy_dataset$negative_control_column]]]
+			dummy_col_tab = dummy_col_tab[select_rows_dummy]
+		}
+
+		# Create a final sample table with the dummy controls added in.
+		sample_table = add_dummy_controls_to_cg_sample_tab(sample_table,
+														   config_params$Options$gene_set_target_prediction$negative_control_column,
+														   config_params$Options$gene_set_target_prediction$condition_name_column,
+														   dummy_col_tab,
+														   config_params$Options$dummy_dataset$negative_control_column,
+														   config_params$Options$dummy_dataset$condition_name_column)
     }
 
     ################ Read in the sample table and negative control/condition name columns, if they exist
