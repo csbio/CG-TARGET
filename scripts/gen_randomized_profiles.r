@@ -52,31 +52,76 @@ print(cg_dt)
 setkeyv(cg_row_tab, c('Strain_ID', 'Barcode'))
 setkeyv(cg_col_tab, c('screen_name', 'expt_id'))
 
-# If a cols_to_include column was specified, filter the row info table, which
+# If a cols_to_include column was specified, filter the col info table, which
 # is then used to filter the data themselves
-if (!is.null(config_params$Required_arguments$`per-array_randomization_include_column`)) {
-    #I don't think I need this flag anymore...
-    #if (arg$`per-array_randomization_include_column` == 'TRUE') {
-    #    stop('The cols_to_include flag is present, but no argument is specified!')
-    #}
+bool_vec = c(`True` = TRUE, `False` = FALSE, `TRUE` = TRUE, `FALSE` = FALSE)
+if (!is.null(config_params$Options$`per-array_randomization`$`per-array_randomization_include_column`)) {
     print(unique(cg_dt[, list(Strain_ID, Barcode)], by = NULL))
     print(unique(cg_dt[, list(screen_name, expt_id)], by = NULL))
     message(sprintf('Matrix dimensions before filtering for "cols_to_include": (%s, %s)',
                   dim(unique(cg_dt[, list(Strain_ID, Barcode)], by = NULL))[1],
                   dim(unique(cg_dt[, list(screen_name, expt_id)], by = NULL))[1]))
-    bool_vec = c(`True` = TRUE, `False` = FALSE, `TRUE` = TRUE, `FALSE` = FALSE)
-    select_rows = bool_vec[cg_col_tab[[config_params$Options$`per-array_randomization_include_column`]]]
+    select_rows = bool_vec[cg_col_tab[[config_params$Options$`per-array_randomization`$`per-array_randomization_include_column`]]]
     cg_col_tab = cg_col_tab[select_rows]
 }
+
 # Here is where the data are filtered. The filtering happens regardless of the
 # presence of the cols_to_include flag.
 setkeyv(cg_col_tab, c('screen_name', 'expt_id'))
 setkeyv(cg_dt, c('screen_name', 'expt_id'))
 cg_col_key = cg_col_tab[, list(screen_name, expt_id)]
 cg_dt = cg_dt[cg_col_key, nomatch = 0]
-message(sprintf('Final matrix dimensions: (%s, %s)',
+message(sprintf('Filtered matrix dimensions: (%s, %s)',
               dim(unique(cg_dt[, list(Strain_ID, Barcode)], by = NULL))[1],
               dim(unique(cg_dt[, list(screen_name, expt_id)], by = NULL))[1]))
+
+# If a dummy dataset was specified, load that in
+dummy_name = config_params$Options$dummy_dataset$name
+if (!is.null(dummy_name)) {
+    dummy_config_f = file(get_dummy_config_filename(dummy_name), 'rt')
+    dummy_config_params = yaml.load_file(dummy_config_f)
+    close(dummy_config_f)
+    dummy_dt = fread(sprintf('gzip -dc %s', file.path(get_dummy_folder(dummy_name), dummy_config_params$cg_data_table)), colClasses = c('character', 'character','character','character','numeric'))
+    dummy_col_tab = fread(file.path(get_dummy_folder(dummy_name), dummy_config_params$cg_col_info_tab), header = TRUE, colClasses = 'character')
+
+    # Filter the dummy dataset sample table!
+    if (!is.null(config_params$Options$dummy_dataset$`per-array_randomization_include_column`)) {
+        print(unique(dummy_dt[, list(Strain_ID, Barcode)], by = NULL))
+        print(unique(dummy_dt[, list(screen_name, expt_id)], by = NULL))
+        message(sprintf('Dummy matrix dimensions before filtering for "cols_to_include": (%s, %s)',
+                      dim(unique(dummy_dt[, list(Strain_ID, Barcode)], by = NULL))[1],
+                      dim(unique(dummy_dt[, list(screen_name, expt_id)], by = NULL))[1]))
+        select_rows_dummy = bool_vec[dummy_col_tab[[config_params$Options$dummy_dataset$`per-array_randomization_include_column`]]]
+        dummy_col_tab = dummy_col_tab[select_rows_dummy]
+    }
+
+
+    # Do the filtering for the dummy dataset.
+    setkeyv(dummy_col_tab, c('screen_name', 'expt_id'))
+    setkeyv(dummy_dt, c('screen_name', 'expt_id'))
+    dummy_col_key = dummy_col_tab[, list(screen_name, expt_id)]
+    dummy_dt = dummy_dt[dummy_col_key, nomatch = 0]
+    message(sprintf('Filtered dummy matrix dimensions: (%s, %s)',
+                  dim(unique(dummy_dt[, list(Strain_ID, Barcode)], by = NULL))[1],
+                  dim(unique(dummy_dt[, list(screen_name, expt_id)], by = NULL))[1]))
+
+    # Here is where I combine dummy and "real" data, just for generating
+    # the resampled profiles. Remember to match the strains!
+    cg_strains = unique(cg_dt[, list(Barcode, Strain_ID)])
+    dummy_strains = unique(dummy_dt[, list(Barcode, Strain_ID)])
+    setkeyv(cg_strains, c('Barcode', 'Strain_ID'))
+    setkeyv(dummy_strains, c('Barcode', 'Strain_ID'))
+    strain_barcode_intersect = cg_strains[dummy_strains, nomatch = 0]
+
+    setkeyv(cg_dt, c('Barcode', 'Strain_ID'))
+    setkeyv(dummy_dt, c('Barcode', 'Strain_ID'))
+    cg_dt = rbind(cg_dt[strain_barcode_intersect], dummy_dt[strain_barcode_intersect])
+
+}
+   
+message(sprintf('Final matrix dimensions: (%s, %s)',
+                dim(unique(cg_dt[, list(Strain_ID, Barcode)], by = NULL))[1],
+                dim(unique(cg_dt[, list(screen_name, expt_id)], by = NULL))[1]))
 
 setkeyv(cg_dt, c('Strain_ID', 'Barcode'))
 
@@ -108,11 +153,8 @@ setcolorder(rand_dt, c('Strain_ID', 'Barcode', 'screen_name', 'expt_id', 'score'
 
 out_dir = get_resampled_profile_folder(config_params$Required_arguments$output_folder)
 dir.create(out_dir, recursive = TRUE)
-out_filename = get_resampled_profile_filename(out_dir,
-                                              config_params$Required_arguments$`per-array_resampling_scheme`,
-                                              config_params$Required_arguments$`num_per-array_resampled_profiles`,
-                                              config_params$Required_arguments$`per-array_resampling_seed`
-                                              )
+
+out_filename = get_resampled_profile_filename(out_dir)
 of = gzfile(out_filename, 'wb')
 write.table(rand_dt, of, sep = '\t', quote = FALSE, row.names = FALSE, col.names = TRUE)
 close(of)
