@@ -84,6 +84,43 @@ plot_discoveries_vs_pval <- function(top_counts_dt, filename_meat, pre) {
 
 }
 
+# Define function to enforce monotonicity
+enforce_monotonicity = function(vec) {
+
+    # Since the first value(s) can be NA
+    # (0 control / 0 treatment), start
+    # after that.
+    first_non_na_idx = which(!is.na(vec))[1]
+    non_na_vec = vec[first_non_na_idx:length(vec)]
+    for (i in 1:(length(non_na_vec) - 1)) {
+        if (non_na_vec[i + 1] < non_na_vec[i]) {
+            non_na_vec[i + 1] = non_na_vec[i]
+        }
+    }
+
+    vec[first_non_na_idx:length(vec)] = non_na_vec
+    vec
+}
+
+# Define function to adjust the FDR to the smallest observed
+# FDR at any further point in the vector (inspired heavily
+# by Benjamini-Hochberg FDR procedure)
+smooth_fdr = function(vec) {
+
+    # FDR values are provided in increasing order based on p-value,
+    # so they are already "sorted" but not completely. To deal with
+    # this, reverse the order and compute the cumulative minimum
+    # value.
+    rev_vec = rev(vec)
+    rev_cummin = cummin(rev_vec)
+
+    # There can be NAs at the end of this list that we want to
+    # inherit the minimum value!
+    rev_cummin[is.na(rev_cummin)] = min(rev_cummin, na.rm = TRUE)
+
+    rev(rev_cummin)
+}
+
 get_pval_fdr_mapping <- function(top_dat) {
 
     # Here I get a table that says, "For every unique p-value, this is how many
@@ -102,34 +139,27 @@ get_pval_fdr_mapping <- function(top_dat) {
         top_dat_list
     }
 
-    enforce_monotonicity = function(vec) {
-
-        for (i in 1:(length(vec) - 1)) {
-            if (vec[i + 1] < vec[i]) {
-                vec[i + 1] = vec[i]
-            }
-        }
-
-        vec
-    }
-
     calc_fdr <- function(control, treatment, top_dat_list) {
         fdr <- top_dat_list[[control]][['max_scaled_count']] / top_dat_list[[treatment]][['max_scaled_count']]
+        # If num discovered treatment conds is zero but it is above zero
+        # for the control, set FDR to 1. This can be brought down later
+		# as determined by the "smooth_fdr" function.
+        fdr[(top_dat_list[[treatment]][['max_scaled_count']] == 0) & (top_dat_list[[control]][['max_scaled_count']] > 0)] <- 1
+		# Chop FDR values above 1 to just 1.
         fdr[fdr > 1] <- 1
 
         print('making sure fdr is indeed sorted!')
         print('original:')
         print(fdr[1:50])
-        print('monotonicity enforced:')
-        fdr = enforce_monotonicity(fdr)
+        print('fdr smoothed (now guaranteed monotonic)')
+        fdr = smooth_fdr(fdr)
         print(fdr[1:50])
-        
-        
-
-        # Since the FDR list is sorted here, I can also add an important step:
-        # not letting the FDR go down after it reaches 100%
-        first_100_fdr <- which(fdr == 1)[1]
-        fdr[first_100_fdr:length(fdr)] <- 1
+       
+        # Commenting out since this should not be necessary.
+        ## Since the FDR list is sorted here, I can also add an important step:
+        ## not letting the FDR go down after it reaches 100%
+        #first_100_fdr <- which(fdr == 1)[1]
+        #fdr[first_100_fdr:length(fdr)] <- 1
 
         fdr
     }
