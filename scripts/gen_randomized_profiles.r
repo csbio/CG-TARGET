@@ -43,23 +43,38 @@ if (zero_resampled_profiles) {
 }
 
 # Read in as a data table
-cg_dt <- fread(sprintf('gzip -dc %s', config_params$Required_arguments$cg_data_table), header = TRUE, colClasses = c('character', 'character','character','character','numeric'))
+cg_dt <- fread(sprintf('gzip -dc %s', config_params$Required_arguments$cg_data_table), header = TRUE,
+               colClasses = 'character')
+cg_dt[, score := as.numeric(score)]
 cg_row_tab = fread(config_params$Required_arguments$cg_row_info_table, header = TRUE, colClasses = 'character')
 cg_col_tab = fread(config_params$Required_arguments$cg_col_info_table, header = TRUE, colClasses = 'character')
 print(cg_dt)
 
+# Determine if format is BEAN-counter version 1 or 2, and adjust accordingly
+all_cols_v1 <- c('Strain_ID', 'Barcode', 'screen_name', 'expt_id', 'score')
+all_cols_v2 <- c('Strain_ID', 'screen_name', 'expt_id', 'score')
+
+if (all(all_cols_v1 %in% names(cg_dt))) {
+  strain_id_cols <- c('Strain_ID', 'Barcode')
+} else if (all(all_cols_v2 %in% names(cg_dt))) {
+  strain_id_cols <- 'Strain_ID'
+} else {
+  stop(sprintf('The following columns must be present in the cg_data_table:\n"%s", and optionally "Barcode"\ncg_data_table location: %s\n', paste(all_cols_v2, collapse = '", "'),
+               config_params$Required_arguments$cg_data_table), call. = FALSE)
+}
+
 # Get the info tabs ready to roll
-setkeyv(cg_row_tab, c('Strain_ID', 'Barcode'))
+setkeyv(cg_row_tab, strain_id_cols)
 setkeyv(cg_col_tab, c('screen_name', 'expt_id'))
 
 # If a cols_to_include column was specified, filter the col info table, which
 # is then used to filter the data themselves
 bool_vec = c(`True` = TRUE, `False` = FALSE, `TRUE` = TRUE, `FALSE` = FALSE)
 if (!is.null(config_params$Options$`per-array_randomization`$`per-array_randomization_include_column`)) {
-    print(unique(cg_dt[, list(Strain_ID, Barcode)], by = NULL))
+    print(unique(cg_dt[, strain_id_cols, with = FALSE], by = NULL))
     print(unique(cg_dt[, list(screen_name, expt_id)], by = NULL))
     message(sprintf('Matrix dimensions before filtering for "cols_to_include": (%s, %s)',
-                  dim(unique(cg_dt[, list(Strain_ID, Barcode)], by = NULL))[1],
+                  dim(unique(cg_dt[, strain_id_cols, with = FALSE], by = NULL))[1],
                   dim(unique(cg_dt[, list(screen_name, expt_id)], by = NULL))[1]))
     select_rows = bool_vec[cg_col_tab[[config_params$Options$`per-array_randomization`$`per-array_randomization_include_column`]]]
     cg_col_tab = cg_col_tab[select_rows]
@@ -72,7 +87,7 @@ setkeyv(cg_dt, c('screen_name', 'expt_id'))
 cg_col_key = cg_col_tab[, list(screen_name, expt_id)]
 cg_dt = cg_dt[cg_col_key, nomatch = 0]
 message(sprintf('Filtered matrix dimensions: (%s, %s)',
-              dim(unique(cg_dt[, list(Strain_ID, Barcode)], by = NULL))[1],
+              dim(unique(cg_dt[, strain_id_cols, with = FALSE], by = NULL))[1],
               dim(unique(cg_dt[, list(screen_name, expt_id)], by = NULL))[1]))
 
 # If a dummy dataset was specified, load that in
@@ -86,10 +101,10 @@ if (!is.null(dummy_name)) {
 
     # Filter the dummy dataset sample table!
     if (!is.null(config_params$Options$dummy_dataset$`per-array_randomization_include_column`)) {
-        print(unique(dummy_dt[, list(Strain_ID, Barcode)], by = NULL))
+        print(unique(dummy_dt[, strain_id_cols, with = FALSE], by = NULL))
         print(unique(dummy_dt[, list(screen_name, expt_id)], by = NULL))
         message(sprintf('Dummy matrix dimensions before filtering for "cols_to_include": (%s, %s)',
-                      dim(unique(dummy_dt[, list(Strain_ID, Barcode)], by = NULL))[1],
+                      dim(unique(dummy_dt[, strain_id_cols, with = FALSE], by = NULL))[1],
                       dim(unique(dummy_dt[, list(screen_name, expt_id)], by = NULL))[1]))
         select_rows_dummy = bool_vec[dummy_col_tab[[config_params$Options$dummy_dataset$`per-array_randomization_include_column`]]]
         dummy_col_tab = dummy_col_tab[select_rows_dummy]
@@ -102,28 +117,28 @@ if (!is.null(dummy_name)) {
     dummy_col_key = dummy_col_tab[, list(screen_name, expt_id)]
     dummy_dt = dummy_dt[dummy_col_key, nomatch = 0]
     message(sprintf('Filtered dummy matrix dimensions: (%s, %s)',
-                  dim(unique(dummy_dt[, list(Strain_ID, Barcode)], by = NULL))[1],
+                  dim(unique(dummy_dt[, strain_id_cols, with = FALSE], by = NULL))[1],
                   dim(unique(dummy_dt[, list(screen_name, expt_id)], by = NULL))[1]))
 
     # Here is where I combine dummy and "real" data, just for generating
     # the resampled profiles. Remember to match the strains!
-    cg_strains = unique(cg_dt[, list(Barcode, Strain_ID)])
-    dummy_strains = unique(dummy_dt[, list(Barcode, Strain_ID)])
-    setkeyv(cg_strains, c('Barcode', 'Strain_ID'))
-    setkeyv(dummy_strains, c('Barcode', 'Strain_ID'))
+    cg_strains = unique(cg_dt[, rev(strain_id_cols), with = FALSE])
+    dummy_strains = unique(dummy_dt[, rev(strain_id_cols), with = FALSE])
+    setkeyv(cg_strains, rev(strain_id_cols))
+    setkeyv(dummy_strains, rev(strain_id_cols))
     strain_barcode_intersect = cg_strains[dummy_strains, nomatch = 0]
 
-    setkeyv(cg_dt, c('Barcode', 'Strain_ID'))
-    setkeyv(dummy_dt, c('Barcode', 'Strain_ID'))
+    setkeyv(cg_dt, rev(strain_id_cols))
+    setkeyv(dummy_dt, rev(strain_id_cols))
     cg_dt = rbind(cg_dt[strain_barcode_intersect], dummy_dt[strain_barcode_intersect])
 
 }
    
 message(sprintf('Final matrix dimensions: (%s, %s)',
-                dim(unique(cg_dt[, list(Strain_ID, Barcode)], by = NULL))[1],
+                dim(unique(cg_dt[, strain_id_cols, with = FALSE], by = NULL))[1],
                 dim(unique(cg_dt[, list(screen_name, expt_id)], by = NULL))[1]))
 
-setkeyv(cg_dt, c('Strain_ID', 'Barcode'))
+setkeyv(cg_dt, strain_id_cols)
 
 # set seed, so this is reproducible, if there is a seed specified
 # If not, then it is basically random each time!
@@ -143,13 +158,13 @@ if (is.numeric(seed)){
 n <- config_params$Required_arguments$`num_per-array_resampled_profiles`
 combined_screen_name = sprintf('%s_%s', paste(unique(cg_dt[['screen_name']]), collapse = ','), 'rand')
 if (config_params$Required_arguments$`per-array_resampling_scheme` == 1) {
-    rand_dt <- cg_dt[, list(screen_name = combined_screen_name, expt_id = sprintf('%06d', 1:n), score = sample(score, n, replace = TRUE)), by = list(Strain_ID, Barcode)]
+    rand_dt <- cg_dt[, list(screen_name = combined_screen_name, expt_id = sprintf('%06d', 1:n), score = sample(score, n, replace = TRUE)), by = strain_id_cols]
 } else if (config_params$Required_arguments$`per-array_resampling_scheme` == 2) {
-    rand_dt <- cg_dt[, list(screen_name = combined_screen_name, expt_id = sprintf('%06d', 1:n), score = rnorm(n, mean(score, na.rm = TRUE), sd = sd(score, na.rm = TRUE))), by = list(Strain_ID, Barcode)]
+    rand_dt <- cg_dt[, list(screen_name = combined_screen_name, expt_id = sprintf('%06d', 1:n), score = rnorm(n, mean(score, na.rm = TRUE), sd = sd(score, na.rm = TRUE))), by = strain_id_cols]
 } else {
     stop('"per-array_resampling_scheme" was given, but value was not "0", "1", or "2"!')
 }
-setcolorder(rand_dt, c('Strain_ID', 'Barcode', 'screen_name', 'expt_id', 'score'))
+setcolorder(rand_dt, c(strain_id_cols, 'screen_name', 'expt_id', 'score'))
 
 out_dir = get_resampled_profile_folder(config_params$Required_arguments$output_folder)
 dir.create(out_dir, recursive = TRUE)
