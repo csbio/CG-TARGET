@@ -71,10 +71,10 @@ setkeyv(cg_col_tab, c('screen_name', 'expt_id'))
 # is then used to filter the data themselves
 bool_vec = c(`True` = TRUE, `False` = FALSE, `TRUE` = TRUE, `FALSE` = FALSE)
 if (!is.null(config_params$Options$`per-array_randomization`$`per-array_randomization_include_column`)) {
-    print(unique(cg_dt[, strain_id_cols], by = NULL))
+    print(unique(cg_dt[, strain_id_cols, with = FALSE], by = NULL))
     print(unique(cg_dt[, list(screen_name, expt_id)], by = NULL))
     message(sprintf('Matrix dimensions before filtering for "cols_to_include": (%s, %s)',
-                  dim(unique(cg_dt[, strain_id_cols], by = NULL))[1],
+                  dim(unique(cg_dt[, strain_id_cols, with = FALSE], by = NULL))[1],
                   dim(unique(cg_dt[, list(screen_name, expt_id)], by = NULL))[1]))
     select_rows = bool_vec[cg_col_tab[[config_params$Options$`per-array_randomization`$`per-array_randomization_include_column`]]]
     cg_col_tab = cg_col_tab[select_rows]
@@ -87,7 +87,7 @@ setkeyv(cg_dt, c('screen_name', 'expt_id'))
 cg_col_key = cg_col_tab[, list(screen_name, expt_id)]
 cg_dt = cg_dt[cg_col_key, nomatch = 0]
 message(sprintf('Filtered matrix dimensions: (%s, %s)',
-              dim(unique(cg_dt[, strain_id_cols], by = NULL))[1],
+              dim(unique(cg_dt[, strain_id_cols, with = FALSE], by = NULL))[1],
               dim(unique(cg_dt[, list(screen_name, expt_id)], by = NULL))[1]))
 
 # If a dummy dataset was specified, load that in
@@ -101,10 +101,10 @@ if (!is.null(dummy_name)) {
 
     # Filter the dummy dataset sample table!
     if (!is.null(config_params$Options$dummy_dataset$`per-array_randomization_include_column`)) {
-        print(unique(dummy_dt[, strain_id_cols], by = NULL))
+        print(unique(dummy_dt[, strain_id_cols, with = FALSE], by = NULL))
         print(unique(dummy_dt[, list(screen_name, expt_id)], by = NULL))
         message(sprintf('Dummy matrix dimensions before filtering for "cols_to_include": (%s, %s)',
-                      dim(unique(dummy_dt[, strain_id_cols], by = NULL))[1],
+                      dim(unique(dummy_dt[, strain_id_cols, with = FALSE], by = NULL))[1],
                       dim(unique(dummy_dt[, list(screen_name, expt_id)], by = NULL))[1]))
         select_rows_dummy = bool_vec[dummy_col_tab[[config_params$Options$dummy_dataset$`per-array_randomization_include_column`]]]
         dummy_col_tab = dummy_col_tab[select_rows_dummy]
@@ -117,13 +117,13 @@ if (!is.null(dummy_name)) {
     dummy_col_key = dummy_col_tab[, list(screen_name, expt_id)]
     dummy_dt = dummy_dt[dummy_col_key, nomatch = 0]
     message(sprintf('Filtered dummy matrix dimensions: (%s, %s)',
-                  dim(unique(dummy_dt[, strain_id_cols], by = NULL))[1],
+                  dim(unique(dummy_dt[, strain_id_cols, with = FALSE], by = NULL))[1],
                   dim(unique(dummy_dt[, list(screen_name, expt_id)], by = NULL))[1]))
 
     # Here is where I combine dummy and "real" data, just for generating
     # the resampled profiles. Remember to match the strains!
-    cg_strains = unique(cg_dt[, rev(strain_id_cols)])
-    dummy_strains = unique(dummy_dt[, rev(strain_id_cols)])
+    cg_strains = unique(cg_dt[, rev(strain_id_cols), with = FALSE])
+    dummy_strains = unique(dummy_dt[, rev(strain_id_cols), with = FALSE])
     setkeyv(cg_strains, rev(strain_id_cols))
     setkeyv(dummy_strains, rev(strain_id_cols))
     strain_barcode_intersect = cg_strains[dummy_strains, nomatch = 0]
@@ -135,7 +135,7 @@ if (!is.null(dummy_name)) {
 }
    
 message(sprintf('Final matrix dimensions: (%s, %s)',
-                dim(unique(cg_dt[, strain_id_cols], by = NULL))[1],
+                dim(unique(cg_dt[, strain_id_cols, with = FALSE], by = NULL))[1],
                 dim(unique(cg_dt[, list(screen_name, expt_id)], by = NULL))[1]))
 
 setkeyv(cg_dt, strain_id_cols)

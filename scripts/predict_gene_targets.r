@@ -70,9 +70,9 @@ cg_col_tab = fread(config_params$Required_arguments$cg_col_info_table, colClasse
 all_cols_v1 <- c('Strain_ID', 'Barcode', 'screen_name', 'expt_id', 'score')
 all_cols_v2 <- c('Strain_ID', 'screen_name', 'expt_id', 'score')
 
-if (all(all_cols_v1 %in% names(cg_dt))) {
+if (all(all_cols_v1 %in% names(cg_tab))) {
   strain_id_cols <- c('Strain_ID', 'Barcode')
-} else if (all(all_cols_v2 %in% names(cg_dt))) {
+} else if (all(all_cols_v2 %in% names(cg_tab))) {
   strain_id_cols <- 'Strain_ID'
 } else {
   stop(sprintf('The following columns must be present in the cg_data_table:\n"%s", and optionally "Barcode"\ncg_data_table location: %s\n', paste(all_cols_v2, collapse = '", "'),
@@ -94,10 +94,10 @@ if (!(is.null(dummy_name) | opt$rand)) {
     # If a column specifying negative experimental controls was specified, then use it
 	# to filter the dummy dataset. otherwise, do not use the dummy dataset here!
     if (!is.null(config_params$Options$dummy_dataset$negative_control_column)) {
-        print(unique(dummy_dt[, strain_id_cols], by = NULL))
+        print(unique(dummy_dt[, strain_id_cols, with = FALSE], by = NULL))
         print(unique(dummy_dt[, list(screen_name, expt_id)], by = NULL))
         message(sprintf('dummy matrix dimensions before filtering for "cols_to_include": (%s, %s)',
-                      dim(unique(dummy_dt[, strain_id_cols], by = NULL))[1],
+                      dim(unique(dummy_dt[, strain_id_cols, with = FALSE], by = NULL))[1],
                       dim(unique(dummy_dt[, list(screen_name, expt_id)], by = NULL))[1]))
         select_rows_dummy = bool_vec[dummy_col_tab[[config_params$Options$dummy_dataset$negative_control_column]]]
         dummy_col_tab = dummy_col_tab[select_rows_dummy]
@@ -109,7 +109,7 @@ if (!(is.null(dummy_name) | opt$rand)) {
     dummy_col_key = dummy_col_tab[, list(screen_name, expt_id)]
     dummy_dt = dummy_dt[dummy_col_key, nomatch = 0]
     message(sprintf('Filtered dummy matrix dimensions: (%s, %s)',
-                  dim(unique(dummy_dt[, strain_id_cols], by = NULL))[1],
+                  dim(unique(dummy_dt[, strain_id_cols, with = FALSE], by = NULL))[1],
                   dim(unique(dummy_dt[, list(screen_name, expt_id)], by = NULL))[1]))
 
     # Create a final sample table with the dummy controls added in.
@@ -122,8 +122,8 @@ if (!(is.null(dummy_name) | opt$rand)) {
 
     # Now, combine the cg dataset with the dummy dataset controls, limiting to strains
     # found in both datasets.
-    cg_strains = unique(cg_tab[, rev(strain_id_cols)])
-    dummy_strains = unique(dummy_dt[, rev(strain_id_cols)])
+    cg_strains = unique(cg_tab[, rev(strain_id_cols), with = FALSE])
+    dummy_strains = unique(dummy_dt[, rev(strain_id_cols), with = FALSE])
     setkeyv(cg_strains, rev(strain_id_cols))
     setkeyv(dummy_strains, rev(strain_id_cols))
     strain_Barcode_intersect = cg_strains[dummy_strains, nomatch = 0]
@@ -134,7 +134,7 @@ if (!(is.null(dummy_name) | opt$rand)) {
 }
 
 message(sprintf('Final CG matrix dimensions: (%s, %s)',
-                dim(unique(cg_tab[, strain_id_cols], by = NULL))[1],
+                dim(unique(cg_tab[, strain_id_cols, with = FALSE], by = NULL))[1],
                 dim(unique(cg_tab[, list(screen_name, expt_id)], by = NULL))[1]))
 
 # read in the gi data
