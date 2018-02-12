@@ -55,7 +55,7 @@ all_cols_v1 <- c('Strain_ID', 'Barcode', 'screen_name', 'expt_id', 'score')
 all_cols_v2 <- c('Strain_ID', 'screen_name', 'expt_id', 'score')
 
 if (all(all_cols_v1 %in% names(cg_dt))) {
-  strain_id_cols <- c('Strain_ID', 'Barcodex')
+  strain_id_cols <- c('Strain_ID', 'Barcode')
 } else if (all(all_cols_v2 %in% names(cg_dt))) {
   strain_id_cols <- 'Strain_ID'
 } else {

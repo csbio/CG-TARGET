@@ -60,9 +60,24 @@ if (opt$rand) {
     cg_filename = config_params$Required_arguments$cg_data_table
 }
 
-cg_tab = fread(sprintf('gzip -dc %s', cg_filename), colClasses = c('character', 'character', 'character', 'character', 'numeric'))
+cg_tab = fread(sprintf('gzip -dc %s', cg_filename), colClasses = 'character')
+cg_tab[, score := as.numeric(score)]
 cg_row_tab = fread(config_params$Required_arguments$cg_row_info_table, colClasses = 'character')
 cg_col_tab = fread(config_params$Required_arguments$cg_col_info_table, colClasses = 'character')
+
+
+# Determine if format is BEAN-counter version 1 or 2, and adjust accordingly
+all_cols_v1 <- c('Strain_ID', 'Barcode', 'screen_name', 'expt_id', 'score')
+all_cols_v2 <- c('Strain_ID', 'screen_name', 'expt_id', 'score')
+
+if (all(all_cols_v1 %in% names(cg_dt))) {
+  strain_id_cols <- c('Strain_ID', 'Barcode')
+} else if (all(all_cols_v2 %in% names(cg_dt))) {
+  strain_id_cols <- 'Strain_ID'
+} else {
+  stop(sprintf('The following columns must be present in the cg_data_table:\n"%s", and optionally "Barcode"\ncg_data_table location: %s\n', paste(all_cols_v2, collapse = '", "'),
+               config_params$Required_arguments$cg_data_table), call. = FALSE)
+}
 
 # If a dummy dataset was specified, and it has experimental controls,
 # then add these into the dataset!
@@ -79,10 +94,10 @@ if (!(is.null(dummy_name) | opt$rand)) {
     # If a column specifying negative experimental controls was specified, then use it
 	# to filter the dummy dataset. otherwise, do not use the dummy dataset here!
     if (!is.null(config_params$Options$dummy_dataset$negative_control_column)) {
-        print(unique(dummy_dt[, list(Strain_ID, Barcode)], by = NULL))
+        print(unique(dummy_dt[, strain_id_cols], by = NULL))
         print(unique(dummy_dt[, list(screen_name, expt_id)], by = NULL))
         message(sprintf('dummy matrix dimensions before filtering for "cols_to_include": (%s, %s)',
-                      dim(unique(dummy_dt[, list(Strain_ID, Barcode)], by = NULL))[1],
+                      dim(unique(dummy_dt[, strain_id_cols], by = NULL))[1],
                       dim(unique(dummy_dt[, list(screen_name, expt_id)], by = NULL))[1]))
         select_rows_dummy = bool_vec[dummy_col_tab[[config_params$Options$dummy_dataset$negative_control_column]]]
         dummy_col_tab = dummy_col_tab[select_rows_dummy]
@@ -94,7 +109,7 @@ if (!(is.null(dummy_name) | opt$rand)) {
     dummy_col_key = dummy_col_tab[, list(screen_name, expt_id)]
     dummy_dt = dummy_dt[dummy_col_key, nomatch = 0]
     message(sprintf('Filtered dummy matrix dimensions: (%s, %s)',
-                  dim(unique(dummy_dt[, list(Strain_ID, Barcode)], by = NULL))[1],
+                  dim(unique(dummy_dt[, strain_id_cols], by = NULL))[1],
                   dim(unique(dummy_dt[, list(screen_name, expt_id)], by = NULL))[1]))
 
     # Create a final sample table with the dummy controls added in.
@@ -107,19 +122,19 @@ if (!(is.null(dummy_name) | opt$rand)) {
 
     # Now, combine the cg dataset with the dummy dataset controls, limiting to strains
     # found in both datasets.
-    cg_strains = unique(cg_tab[, list(Barcode, Strain_ID)])
-    dummy_strains = unique(dummy_dt[, list(Barcode, Strain_ID)])
-    setkeyv(cg_strains, c('Barcode', 'Strain_ID'))
-    setkeyv(dummy_strains, c('Barcode', 'Strain_ID'))
+    cg_strains = unique(cg_tab[, rev(strain_id_cols)])
+    dummy_strains = unique(dummy_dt[, rev(strain_id_cols)])
+    setkeyv(cg_strains, rev(strain_id_cols))
+    setkeyv(dummy_strains, rev(strain_id_cols))
     strain_Barcode_intersect = cg_strains[dummy_strains, nomatch = 0]
 
-    setkeyv(cg_tab, c('Barcode', 'Strain_ID'))
-    setkeyv(dummy_dt, c('Barcode', 'Strain_ID'))
+    setkeyv(cg_tab, rev(strain_id_cols))
+    setkeyv(dummy_dt, rev(strain_id_cols))
     cg_tab = rbind(cg_tab[strain_Barcode_intersect], dummy_dt[strain_Barcode_intersect])
 }
 
 message(sprintf('Final CG matrix dimensions: (%s, %s)',
-                dim(unique(cg_tab[, list(Strain_ID, Barcode)], by = NULL))[1],
+                dim(unique(cg_tab[, strain_id_cols], by = NULL))[1],
                 dim(unique(cg_tab[, list(screen_name, expt_id)], by = NULL))[1]))
 
 # read in the gi data
@@ -130,10 +145,10 @@ gi_to_cg_match_col = gi_info$array_sys_name_col
 
 # shape the cg data into a matrix with the rownames coming from
 # the column that matches the gi data match column
-setkeyv(cg_tab, c('Strain_ID', 'Barcode'))
-setkeyv(cg_row_tab, c('Strain_ID', 'Barcode'))
+setkeyv(cg_tab, strain_id_cols)
+setkeyv(cg_row_tab, strain_id_cols)
 cg_tab[, condition_key := sprintf('%s_%s', screen_name, expt_id)]
-cg_tab = cg_tab[cg_row_tab[, c('Strain_ID', 'Barcode', config_params$Required_arguments$cg_to_gi_match_col), with = FALSE], nomatch = 0, allow.cartesian = TRUE]
+cg_tab = cg_tab[cg_row_tab[, c(strain_id_cols, config_params$Required_arguments$cg_to_gi_match_col), with = FALSE], nomatch = 0, allow.cartesian = TRUE]
 print(cg_tab)
 cg_form = as.formula(sprintf('%s ~ %s', config_params$Required_arguments$cg_to_gi_match_col, 'condition_key'))
 cg_mat = acast(data = cg_tab, formula = cg_form, fill = 0, fun.aggregate = mean, na.rm = TRUE, value.var = 'score')
