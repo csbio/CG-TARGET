@@ -21,6 +21,7 @@ library(yaml)
 TARGET_PATH = Sys.getenv('TARGET_PATH')
 source(file.path(TARGET_PATH, 'lib/pos_args.r'))
 source(file.path(TARGET_PATH, 'lib/filenames.r'))
+source(file.path(TARGET_PATH, 'lib/common_vars.r'))
 
 positional_arguments_list = c(CONFIG_FILE = 'yaml-formatted gene-set prediction configuration file.')
 final_usage_positional = get_usage_and_positional(positional_arguments_list)
@@ -69,7 +70,6 @@ setkeyv(cg_col_tab, c('screen_name', 'expt_id'))
 
 # If a cols_to_include column was specified, filter the col info table, which
 # is then used to filter the data themselves
-bool_vec = c(`True` = TRUE, `False` = FALSE, `TRUE` = TRUE, `FALSE` = FALSE)
 if (!is.null(config_params$Options$`per-array_randomization`$`per-array_randomization_include_column`)) {
     print(unique(cg_dt[, strain_id_cols, with = FALSE], by = NULL))
     print(unique(cg_dt[, list(screen_name, expt_id)], by = NULL))

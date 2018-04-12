@@ -31,6 +31,7 @@ source(file.path(TARGET_PATH, 'lib/table_to_globular.r'))
 source(file.path(TARGET_PATH, 'lib/zscore-pval_by-drug-and-goterm_fast.r'))
 source(file.path(TARGET_PATH, 'lib/pos_args.r'))
 source(file.path(TARGET_PATH, 'lib/filenames.r'))
+source(file.path(TARGET_PATH, 'lib/common_vars.r'))
 source(file.path(TARGET_PATH, 'lib/datasets.r'))
 source(file.path(TARGET_PATH, 'lib/scott_themes.r'))
 source(file.path(TARGET_PATH, 'lib/dummy_dataset.r'))
@@ -308,7 +309,6 @@ if (load_point < 1) {
     ################ Deal with the consequences of using a dummy dataset, if applicable ###############
     # (must be done before pulling other information from sample table, as this modifies the sample
     # table to include dummy controls, if they exist)
-    bool_vec = c(`True` = TRUE, `False` = FALSE, `TRUE` = TRUE, `FALSE` = FALSE)
 	dummy_name = config_params$Options$dummy_dataset$name
 	if (!is.null(dummy_name)) {
 		dummy_config_f = file(get_dummy_config_filename(dummy_name), 'rt')
