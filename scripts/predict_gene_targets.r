@@ -21,6 +21,7 @@ source(file.path(TARGET_PATH, 'lib/cosine.r'))
 source(file.path(TARGET_PATH, 'lib/dot_cosine.r'))
 source(file.path(TARGET_PATH, 'lib/pos_args.r'))
 source(file.path(TARGET_PATH, 'lib/filenames.r'))
+source(file.path(TARGET_PATH, 'lib/common_vars.r'))
 source(file.path(TARGET_PATH, 'lib/datasets.r'))
 source(file.path(TARGET_PATH, 'lib/dummy_dataset.r'))
 
@@ -82,7 +83,6 @@ if (all(all_cols_v1 %in% names(cg_tab))) {
 # If a dummy dataset was specified, and it has experimental controls,
 # then add these into the dataset!
 
-bool_vec = c(`True` = TRUE, `False` = FALSE, `TRUE` = TRUE, `FALSE` = FALSE)
 dummy_name = config_params$Options$dummy_dataset$name
 if (!(is.null(dummy_name) | opt$rand)) {
     dummy_config_f = file(get_dummy_config_filename(dummy_name), 'rt')
