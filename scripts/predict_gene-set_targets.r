@@ -282,7 +282,11 @@ if (load_point < 1) {
                        opt$test_run
                        )
 
-    true_false_control_map = c('TRUE' = 'expt_control', 'FALSE' = 'treatment', 'True' = 'expt_control', 'False' = 'treatment')
+    # This way, `true_false_control_map` adapts to changes in `bool_vec`
+    init_control_map = c(`TRUE` = 'expt_control', `FALSE` = 'treatment')
+    true_false_control_map = init_control_map[as.character(bool_vec)]
+    names(true_false_control_map) = names(bool_vec)
+    #true_false_control_map = c('TRUE' = 'expt_control', 'FALSE' = 'treatment', 'True' = 'expt_control', 'False' = 'treatment')
 
     ################### Load in optional files and options
     # Gene set ID to interpretable name table
