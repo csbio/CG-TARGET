@@ -10,6 +10,84 @@ CG-TARGET is a collection of R scripts to be used for the purpose of predicting 
 - Scalable: amenable to the analysis of both small and large chemical-genetic interaction datasets.
 - Written in R; no other dependencies.
 
+## How to use
+
+After downloading the software and setting up your environment variables, it is quite simple to run the commands. First, you will need to set up your configuration file (here called `config_file.yaml`). The `example_config_file.yaml` is provided as a template in the main folder.
+
+### General overview
+
+Given the following datasets, CG-TARGET predicts the biological processes (or other functionally coherent gene sets) that are perturbed by compounds:
+1. A dataset of chemical-genetic interaction profiles obtained for compounds and negative controls (typically a solvent control such as DMSO) against a mutant collection
+2. A dataset of genetic interaction profiles obtained for "query" gene mutants against a mutant collection that overlaps with the profiles in (1)
+3. A collection of biological process (or other gene set) annotations for the query genes in (2)
+
+![CG-TARGET overview](CG-TARGET_overview.png)
+
+CG-TARGET can be broken down into four distinct steps:
+
+1. `gen_randomized_profiles.r` generates randomly-resampled profiles, which are used in z-score/p-value and FDR calculations, from compound-treated conditions.
+2. `predict_gene_targets.r` integrates the chemical-genetic and genetic interaction profiles to generate a similarity score for each combination of compound and genetic interaction query gene.
+3. `predict_gene_set_targets.r` aggregates these compound-gene similarity scores at the level of biological processes (or other gene sets) to generate z-scores and p-values for each compound-process association.
+3. `gene_set_FDR_analysis.r` uses the process-level predictions derived from negative control and resampled chemical-genetic interaction profiles to calculate estimates of the false discovery rate.
+
+### Script details
+
+Note: config_file.yaml defines a folder that contains the output of all scripts, called `output_folder`. This is referenced below as `<output_folder>`.
+
+#### View available genetic interaction datasets
+
+```
+gi_datasets.r
+```
+
+Use this script to check which genetic interaction datasets are available.
+
+#### View available gene sets
+
+```
+gene_sets.r
+```
+
+Use this script to check which gene set annotations are available.
+
+#### Generate resampled profiles
+
+```
+gen_randomized_profiles.r config_file.yaml
+```
+
+This script generates the set of resampled profiles derived from compound-treated conditions. Output is in `<output_folder>/resampled_profiles/`.
+
+#### Predict gene targets for both the real and resampled profiles
+
+```
+predict_gene_targets.r config_file.yaml
+predict_gene_targets.r --rand config_file.yaml
+```
+
+This script generates compound-gene similarity scores by integrating chemical-genetic and genetic interaction profiles. Output is in `<output_folder>/gene_target_prediction/`. Without the `--rand` flag, the computations are performed for the compound-treated and negative control profiles, and with the `--rand` flag, they are performed for the resampled profiles.
+
+#### **Optional:** Create a clustered heat map of gene target prediction scores
+
+This will be a *.CDT file, viewable with Java TreeView. You can choose to view the predictions for the resampled profiles too (again, using `--rand`).
+
+```
+visualize_gene_targets.r config_file.yaml
+visualize_gene_targets.r --rand config_file.yaml
+```
+
+#### Predict the gene-set targets
+
+```predict_gene-set_targets.r config_file.yaml```
+
+This script aggregates compound-gene similarity scores into z-scores and p-values for each combination of compound and biological process. Output is in `<output_folder>/gene_set_target_prediction/`.
+
+#### Estimate false discovery rate and export final gene-set target prediction tables.
+
+```gene_set_FDR_analysis.r config_file.yaml```
+
+This script compares the rate of prediction for compounds versus 1) negative control profiles and 2) resampled profiles across the full range of p-values, resulting in empirical estimates of the false discovery rate. Output is in `<output_folder>/final_results/`.
+
 ## Installation
 
 ### Requirements
@@ -87,54 +165,13 @@ export PATH=$PATH:/your/path/to/CG-TARGET/scripts
 
 [Tutorial for changing path variable](http://www.computerhope.com/issues/ch000549.htm)
 
+<!--
 ##### Environments
 
 I am an advocate of using virtual environments to manage environment variables in ways that keep one's default environment clean from the many different variables that may be required for different software packages. I currently use anaconda, a combined virtual environment and package manager, to manage my Microsoft R Open and GNU R installations. Venv is another good virtual environment manager.
 
 For an example of how I set up R using conda, see this gist: https://gist.github.com/RussianImperialScott/d10a83366ee8bc2823fa63651cb65fe3
-
-## How to use
-
-After downloading the software and setting up your environment variables, it is quite simple to run the commands. First, you will need to set up your configuration file (here called `config_file.yaml`). The `example_config_file.yaml` is provided as a template in the main folder.
-
-#### View available genetic interaction datasets
-
-`gi_datasets.r`
-
-#### View available gene sets
-
-```
-gene_sets.r
-```
-
-#### Generate resampled profiles
-
-`gen_randomized_profiles.r config_file.yaml`
-
-#### Predict gene targets for both the real and resampled profiles
-
-```
-predict_gene_targets.r config_file.yaml
-predict_gene_targets.r --rand config_file.yaml
-```
-
-#### **Optional:** Create a clustered heat map of gene target prediction scores
-
-This will be a *.CDT file, viewable with Java TreeView. You can choose to view the predictions for the resampled profiles too.
-
-```
-visualize_gene_targets.r config_file.yaml
-visualize_gene_targets.r --rand config_file.yaml
-```
-
-#### Predict the gene-set targets
-
-```predict_gene-set_targets.r config_file.yaml```
-
-#### Estimate false discovery rate and export final gene-set target prediction tables.
-
-```gene_set_FDR_analysis.r config_file.yaml```
-
+-->
 
 ## License
 
