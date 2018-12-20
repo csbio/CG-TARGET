@@ -6,9 +6,8 @@ library(data.table)
 library(ggplot2)
 library(reshape2)
 
-source('/project/csbio/Scott/Software/myRLibrary/plotting_tools/scott_themes.r')
-source('/project/csbio/Scott/Software/myRLibrary/Munging/table_to_globular.r')
-
+source(file.path(TARGET_PATH, 'lib/scott_themes.r'))
+source(file.path(TARGET_PATH, 'lib/table_printing.r'))
 
 get_top_prediction_per_condition<- function(dat) {
 
