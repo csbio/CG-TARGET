@@ -34,33 +34,33 @@ CG-TARGET can be broken down into four distinct steps:
 
 Note: config_file.yaml defines a folder that contains the output of all scripts, called `output_folder`. This is referenced below as `<output_folder>`.
 
-#### View available genetic interaction datasets
+#### 1. View available genetic interaction datasets
 
-```
+```bash
 gi_datasets.r
 ```
 
 Use this script to check which genetic interaction datasets are available.
 
-#### View available gene sets
+#### 2. View available gene sets
 
-```
+```bash
 gene_sets.r
 ```
 
 Use this script to check which gene set annotations are available.
 
-#### Generate resampled profiles
+#### 3. Generate resampled profiles
 
-```
+```bash
 gen_randomized_profiles.r config_file.yaml
 ```
 
-This script generates the set of resampled profiles derived from compound-treated conditions. Output is in `<output_folder>/resampled_profiles/`.
+This script generates the set of resampled profiles derived from compound-treated conditions. Output is in `<output_folder>/resampled_profiles/`. This step is unnecessary if `per-array_resampling_scheme` or `num_per-array_resampled_profiles` is set to `0` in the config file.
 
-#### Predict gene targets for both the real and resampled profiles
+#### 4. Predict gene targets for both the real and resampled profiles
 
-```
+```bash
 predict_gene_targets.r config_file.yaml
 predict_gene_targets.r --rand config_file.yaml
 ```
@@ -71,28 +71,32 @@ This script generates compound-gene similarity scores by integrating chemical-ge
 
 This will be a *.CDT file, viewable with Java TreeView. You can choose to view the predictions for the resampled profiles too (again, using `--rand`).
 
-```
+```bash
 visualize_gene_targets.r config_file.yaml
 visualize_gene_targets.r --rand config_file.yaml
 ```
 
-#### Predict the gene-set targets
+#### 5. Predict the gene-set targets
 
-```predict_gene-set_targets.r config_file.yaml```
+```bash
+predict_gene-set_targets.r config_file.yaml
+```
 
 This script aggregates compound-gene similarity scores into z-scores and p-values for each combination of compound and biological process. Output is in `<output_folder>/gene_set_target_prediction/`.
 
-#### Estimate false discovery rate and export final gene-set target prediction tables.
+#### 6. Estimate false discovery rate and export final gene-set target prediction tables.
 
-```gene_set_FDR_analysis.r config_file.yaml```
+```bash
+gene_set_FDR_analysis.r config_file.yaml
+```
 
-This script compares the rate of prediction for compounds versus 1) negative control profiles and 2) resampled profiles across the full range of p-values, resulting in empirical estimates of the false discovery rate. Output is in `<output_folder>/final_results/`.
+This script compares the rate of prediction for compounds versus 1) negative control profiles and 2) resampled profiles across the full range of p-values, resulting in empirical estimates of the false discovery rate. Output is in `<output_folder>/final_results/`. If `FDR_estimation_scheme` is set to 2, no figures are generated.
 
 ## Installation
 
-### Requirements
+### 1. Requirements
 
-This software is written in R, and thus requires a working R installation. Microsoft Open R (or any other R with an optimized BLAS library, such as OpenBLAS) is recommended, as speed at which some steps finish depends highly on the speed of the matrix multiplications involved.
+This software is written in R, and thus requires a working R installation. R compiled with BLAS support (or linked to an optimized BLAS library such as Intel(c) MKL, OpenBLAS, etc) is recommended as speed at which some steps finish depends highly on the speed of the matrix multiplications involved.
 
 __**The following libraries are required:**__
 
@@ -117,7 +121,9 @@ __**The following libraries are optional:**__
 	ctc
 	fastcluster
 
-### Downloading CG-TARGET
+	Note: Packages `grid` and `tools` might give a "cannot upgrade" message because they are part of base R packages. `ctc` is [from Bioconductor](https://www.bioconductor.org/packages/release/bioc/html/ctc.html) 
+
+### 2. Downloading CG-TARGET
 
 #### Basic
 
@@ -128,11 +134,11 @@ Head on over to https://github.com/csbio/CG-TARGET/releases/ and download the la
 If you know what you are doing and want to keep up-to-date with the latest version, clone the repository (git clone https://github.com/csbio/CG-TARGET.git or windows equivalent).
 
 
-### Setting up environment variables
+### 3. Setting up environment variables
 
 Required: **TARGET_PATH**
 
-Set the value of this environment variable to the path of the CG-TARGET folder you downloaded and extracted. The scripts from BEAN-counter will look for this variable in your environment, so it must be set!
+Set the value of this environment variable to the path of the CG-TARGET folder you downloaded and extracted. The scripts from [BEAN-counter](https://www.nature.com/articles/s41596-018-0099-1) will look for this variable in your environment, so it must be set.
 
 Optional, but strongly recommended: adding `$TARGET_PATH/scripts/` to your PATH
 
@@ -143,13 +149,13 @@ Adding the scripts folder inside of the CG-TARGET folder to your **PATH** enviro
 ##### Linux/Mac
 The best way to do this is by adding code to the scripts that run every time you open a new shell. If you use the bash shell, then add the following line to either your ~/.bashrc or ~/.bash_profile files:
 
-```
+```bash
 export TARGET_PATH=/your/path/to/CG-TARGET/
 ```
 
 If you use the c shell (csh), then add the following line to your ~/.cshrc file:
 
-```
+```csh
 setenv TARGET_PATH /your/path/to/CG-TARGET/
 ```
 
@@ -157,13 +163,13 @@ setenv TARGET_PATH /your/path/to/CG-TARGET/
 
 To append a directory to your PATH variable, add this line to your ~/.bashrc or ~/.bash_profile (or equivalent for ~/.cshrc):
 
-```
+```bash
 export PATH=$PATH:/your/path/to/CG-TARGET/scripts
 ```
 
 ##### Windows
 
-[Tutorial for changing path variable](http://www.computerhope.com/issues/ch000549.htm)
+[Tutorial for changing path variables](http://www.computerhope.com/issues/ch000549.htm)
 
 <!--
 ##### Environments
