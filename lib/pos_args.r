@@ -28,4 +28,3 @@ get_usage_and_positional = function(pos_args_list) {
     return(final_usage_positional)
 
 }
-

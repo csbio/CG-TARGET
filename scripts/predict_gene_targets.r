@@ -223,4 +223,3 @@ pred_out <- gzfile(out_filename, open = 'wb')
 # Write out to file
 write.table(predictions_tab, pred_out, sep = '\t', quote = FALSE, row.names = FALSE, col.names = TRUE)
 close(pred_out)
-

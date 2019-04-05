@@ -18,7 +18,3 @@ cos_dist_for_clust <- function(mat, ...) {
 
     as.dist(dists)
 }
-
-
-
-

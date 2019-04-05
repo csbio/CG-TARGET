@@ -334,5 +334,3 @@ print_diagnostic_plots_pval_zscore_2_schemes <- function(scheme1_pval_mat, schem
     return(NULL)
 
 }
-
-

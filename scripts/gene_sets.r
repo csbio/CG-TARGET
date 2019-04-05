@@ -24,4 +24,3 @@ pretty_tab_string = prettify_table(gene_set_tab)
 write('\n', stdout())
 write(pretty_tab_string, stdout())
 write('\n', stdout())
-

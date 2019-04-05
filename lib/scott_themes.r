@@ -15,6 +15,3 @@ scott_theme_1 <- function() {
     theme(axis.text = element_text(size = 14)) +
     theme(plot.margin = unit(c(1,1,1,1), 'cm'))
 }
-
-    
-    

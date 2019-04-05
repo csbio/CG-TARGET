@@ -55,4 +55,3 @@ table_to_matrix = function(tab) {
                 matrix = mat
                 ))
 }
-
