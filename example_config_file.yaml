@@ -5,7 +5,7 @@ Required_arguments :
     # Table of chemical genetic interaction scores with
     # "screen_name" and "expt_id" columns for the conditions
     # and "Strain_ID" and "Barcode" columns for the array strains.
-    # CG scores are stored in a column named "store".
+    # CG scores are stored in a column named "score".
     cg_data_table                       : /path/to/cg_data_table
     # Table with "Strain_ID" and "Barcode" columns that map to
     # other info for the array.
@@ -20,7 +20,7 @@ Required_arguments :
     # Name of genetic interaction dataset to use. See all available
     # options by running the "gi_datasets.r" command.
     gi_dataset_name                     : SGA_DMA_array_no-supps_sig-only
-    # Options: "cg_norm_cosine" and "cosine".
+    # Options: "cg-norm-dot" and "cosine".
     cg_gi_similarity_measure            : cg-norm-dot
     # Define a cutoff on the score from cg_gi_similarity_measure,
     # above which the query gene is deemed a "driver" of predictions
