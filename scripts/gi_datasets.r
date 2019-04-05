@@ -22,6 +22,3 @@ pretty_tab_string = prettify_table(dataset_tab)
 
 # Write out to the terminal!
 write(pretty_tab_string, stdout())
-
-
-

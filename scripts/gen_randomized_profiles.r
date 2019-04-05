@@ -173,5 +173,3 @@ out_filename = get_resampled_profile_filename(out_dir)
 of = gzfile(out_filename, 'wb')
 write.table(rand_dt, of, sep = '\t', quote = FALSE, row.names = FALSE, col.names = TRUE)
 close(of)
-
-
