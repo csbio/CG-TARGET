@@ -69,7 +69,7 @@ This script generates compound-gene similarity scores by integrating chemical-ge
 
 #### **Optional:** Create a clustered heat map of gene target prediction scores
 
-This will be a *.CDT file, viewable with Java TreeView. You can choose to view the predictions for the resampled profiles too (again, using `--rand`).
+This will be a *.CDT file, viewable with [Java TreeView](http://jtreeview.sourceforge.net). You can choose to view the predictions for the resampled profiles too (again, using `--rand`).
 
 ```bash
 visualize_gene_targets.r config_file.yaml
@@ -90,7 +90,7 @@ This script aggregates compound-gene similarity scores into z-scores and p-value
 gene_set_FDR_analysis.r config_file.yaml
 ```
 
-This script compares the rate of prediction for compounds versus 1) negative control profiles and 2) resampled profiles across the full range of p-values, resulting in empirical estimates of the false discovery rate. Output is in `<output_folder>/final_results/`. If `FDR_estimation_scheme` is set to 2, no figures are generated.
+This script compares the rate of prediction for compounds versus 1) negative control profiles and 2) resampled profiles across the full range of p-values, resulting in empirical estimates of the false discovery rate. Output is in `<output_folder>/final_results/`. If `FDR_estimation_scheme` is set to 2 in the config file, no figures are generated.
 
 ## Installation
 
@@ -121,7 +121,7 @@ __**The following libraries are optional:**__
 	ctc
 	fastcluster
 
-Note: Packages `grid` and `tools` might give a "cannot upgrade" message because they are part of base R packages. `ctc` is [from Bioconductor](https://www.bioconductor.org/packages/release/bioc/html/ctc.html) 
+_**Note**: Packages `grid` and `tools` might give a "cannot upgrade" message because they are part of base R packages. `ctc` is [from Bioconductor](https://www.bioconductor.org/packages/release/bioc/html/ctc.html)_
 
 ### 2. Downloading CG-TARGET
 
@@ -144,7 +144,8 @@ Optional, but strongly recommended: adding `$TARGET_PATH/scripts/` to your PATH
 
 Adding the scripts folder inside of the CG-TARGET folder to your **PATH** environment variable allows you to execute the commands in the pipeline by calling them only by their names (all demos will assume this has been done).
 
-#### How do I set my environment variables?
+### FAQ
+#### 1. How do I set my environment variables?
 
 ##### Linux/Mac
 The best way to do this is by adding code to the scripts that run every time you open a new shell. If you use the bash shell, then add the following line to either your ~/.bashrc or ~/.bash_profile files:
@@ -155,7 +156,7 @@ export TARGET_PATH=/your/path/to/CG-TARGET/
 
 If you use the c shell (csh), then add the following line to your ~/.cshrc file:
 
-```bash
+```shell
 setenv TARGET_PATH /your/path/to/CG-TARGET/
 ```
 
@@ -178,6 +179,26 @@ I am an advocate of using virtual environments to manage environment variables i
 
 For an example of how I set up R using conda, see this gist: https://gist.github.com/RussianImperialScott/d10a83366ee8bc2823fa63651cb65fe3
 -->
+
+#### 2. How do I compile R with BLAS or install other BLAS libraries?
+There are tutorials on the internet on how to compile R with BLAS enabled. Unfortunately, YMMV depending on the version of R you are compiling, your OS as well as the strength of your coffee. Compiling or installing other BLAS libraries is somewhat easier.  
+Linking the two libraries is as simple as `ln -s /path/to/BLASlibrary /path/to/R/installation/lib/libRblas.so`
+
+#### 3. Ok, I compiled R with BLAS and linked the library. How do I check if R is using the correct BLAS library?
+
+1. Run the R executable
+
+2. Find the process ID for that executable using `ps` or `top` etc.
+```bash
+ps aux | grep '/opt/R'
+```
+
+3. use `lsof` to **l**i**s**t the **o**pen **f**iles being used by the process ID from step 2.
+```bash
+lsof -p <pid> | grep 'blas'
+```
+
+There are other ways to do this such as using the command `sessionInfo()` from within your R session.
 
 ## License
 
