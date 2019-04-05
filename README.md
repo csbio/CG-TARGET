@@ -121,7 +121,7 @@ __**The following libraries are optional:**__
 	ctc
 	fastcluster
 
-	Note: Packages `grid` and `tools` might give a "cannot upgrade" message because they are part of base R packages. `ctc` is [from Bioconductor](https://www.bioconductor.org/packages/release/bioc/html/ctc.html) 
+Note: Packages `grid` and `tools` might give a "cannot upgrade" message because they are part of base R packages. `ctc` is [from Bioconductor](https://www.bioconductor.org/packages/release/bioc/html/ctc.html) 
 
 ### 2. Downloading CG-TARGET
 
@@ -131,7 +131,7 @@ Head on over to https://github.com/csbio/CG-TARGET/releases/ and download the la
 
 #### Advanced
 
-If you know what you are doing and want to keep up-to-date with the latest version, clone the repository (git clone https://github.com/csbio/CG-TARGET.git or windows equivalent).
+If you know what you are doing and want to keep up-to-date with the latest version, clone the repository (`git clone https://github.com/csbio/CG-TARGET.git` or windows equivalent).
 
 
 ### 3. Setting up environment variables
@@ -155,13 +155,13 @@ export TARGET_PATH=/your/path/to/CG-TARGET/
 
 If you use the c shell (csh), then add the following line to your ~/.cshrc file:
 
-```csh
+```bash
 setenv TARGET_PATH /your/path/to/CG-TARGET/
 ```
 
 (but please, **please** do us all a favor and ditch the c shell already)
 
-To append a directory to your PATH variable, add this line to your ~/.bashrc or ~/.bash_profile (or equivalent for ~/.cshrc):
+To append a directory to your PATH variable, add this line to your `~/.bashrc` or `~/.bash_profile` (or equivalent for `~/.cshrc`):
 
 ```bash
 export PATH=$PATH:/your/path/to/CG-TARGET/scripts
