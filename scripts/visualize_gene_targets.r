@@ -130,5 +130,3 @@ near_full_path = file.path(cdt_folder, basename(cdt_folder))
 r2gtr(hr = hclusts$rows, file = sprintf('%s.gtr', near_full_path), distance = 'custom')
 r2atr(hc = hclusts$cols, file = sprintf('%s.atr', near_full_path), distance = 'custom')
 r2cdt(hr = hclusts$rows, hc = hclusts$cols, data = mat, file = sprintf('%s.cdt', near_full_path))
-
-
