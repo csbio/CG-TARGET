@@ -129,6 +129,12 @@ config_f = file(arg[1], 'rt')
 config_params = yaml.load_file(config_f)
 close(config_f)
 
+# Validate alternative hypothesis entry in config_params
+alt_options <- c("greater", "less", "two-sided")
+if (!config_params$Required_arguments$alternative %in% alt_options) {
+  stop(sprintf("Required argument 'alternative' must be one of c('%s')", paste(alt_options, collapse = "', '")))
+}
+
 # Get the output folder for intermediate data
 # (and create if it doesn't exist!)
 output_table_folder = get_gene_set_target_prediction_folder(config_params$Required_arguments$output_folder)
@@ -259,6 +265,7 @@ if (load_point < 1) {
                        config_params$Required_arguments$gene_set_name,
                        config_params$Required_arguments$min_term_size,
                        config_params$Required_arguments$max_term_size,
+                       config_params$Required_arguments$alternative,
                        opt$test_run
                        )
 
@@ -725,7 +732,7 @@ if (load_point < 3) {
         # Only compute per-gene-set scores if negative control and/or
         # resampled profiles are present. Otherwise, skip and replace
         # with a reasonable data structure.
-        per_gene_set_pvals_zscores = compute_per_gene_set_pvals_zscores(condition_subset_gene_set_pred_sum_mat, control_gene_set_pred_sum_mat_list, control_gene_set_pred_sum_means_list, control_gene_set_pred_sum_stdevs_list, controls)
+        per_gene_set_pvals_zscores = compute_per_gene_set_pvals_zscores(condition_subset_gene_set_pred_sum_mat, control_gene_set_pred_sum_mat_list, control_gene_set_pred_sum_means_list, control_gene_set_pred_sum_stdevs_list, controls, config_params$Required_arguments$alternative)
     } else {
 
         # Else, this list is just NULL instead. To be dealt with later.
@@ -767,7 +774,7 @@ if (load_point < 4) {
         stop('specified per-condition_randomization_seed is neither numeric nor "rand"')
     }
         
-    per_condition_pvals_zscores = compute_per_condition_pvals_zscores_2(target_prediction_subset_mat, condition_subset_gene_set_pred_sum_mat, gene_set_matrix, num_per_condition_rand, gene_set_sizes, condition_subset_gene_score_means, condition_subset_gene_score_stdevs, seed)
+    per_condition_pvals_zscores = compute_per_condition_pvals_zscores_2(target_prediction_subset_mat, condition_subset_gene_set_pred_sum_mat, gene_set_matrix, num_per_condition_rand, gene_set_sizes, condition_subset_gene_score_means, condition_subset_gene_score_stdevs, seed, config_params$Required_arguments$alternative)
 
     # Combine results into a final list and remove the individual lists
     all_pvals_zscores = list(per_gene_set = per_gene_set_pvals_zscores, per_condition = per_condition_pvals_zscores)
@@ -839,7 +846,8 @@ if (load_point < 5) {
                                                                    all_pvals_zscores[['per_gene_set']][[controls[2]]][['pval']],
                                                                    all_pvals_zscores[['per_gene_set']][[controls[2]]][['zscore']],
                                                                    controls[1],
-                                                                   controls[2]
+                                                                   controls[2],
+                                                                   config_params$Required_arguments$alternative
                                                                    )
     } else if (length(all_pvals_zscores[['per_gene_set']]) == 1) {
         print(str(all_pvals_zscores))
@@ -884,7 +892,8 @@ if (load_point < 5) {
                                                               all_pvals_zscores$per_condition$pval,
                                                               all_pvals_zscores$per_condition$zscore,
                                                               'per_gene_set',
-                                                              'per_condition'
+                                                              'per_condition',
+                                                              config_params$Required_arguments$alternative
                                                               )
     }
 
