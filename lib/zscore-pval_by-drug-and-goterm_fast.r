@@ -7,7 +7,7 @@ library(data.table)
 
 # Source in libraries specific to this part of the script!
 TARGET_PATH = Sys.getenv('TARGET_PATH')
-source(file.path(TARGET_PATH, 'lib/one-sided_empirical_pval.R'))
+source(file.path(TARGET_PATH, 'lib/empirical_pval.R'))
 
 # target_prediction_mat should have drugs/conditions as rows and target prediction scores as columns
 # go_term_mat should have the GO terms as columns and the predicted target genes as rows (and 1's in
@@ -40,8 +40,16 @@ best_score_per_col_group = function(mat, group_vec) {
     return(list(best_scores = final_mat, best_queries = which_mat))
 }
 
-compute_per_gene_set_pvals_zscores = function(condition_x_gene_set_pred_sum_mat, control_condition_x_gene_set_pred_sum_mat_list, control_condition_x_gene_set_pred_sum_means_list, control_condition_x_gene_set_pred_sum_stdevs_list, control_types) {
-
+compute_per_gene_set_pvals_zscores = function(condition_x_gene_set_pred_sum_mat, control_condition_x_gene_set_pred_sum_mat_list, control_condition_x_gene_set_pred_sum_means_list, control_condition_x_gene_set_pred_sum_stdevs_list, control_types, alternative = c('greater', 'less', 'two-sided')) {
+    # determine which direction of effect to detect
+    alternative <- match.arg(alternative) 
+    empirical_pval_fn <- switch(
+        alternative,
+        greater = empirical_pval_greater,
+        less = empirical_pval_less,
+        `two-sided` = empirical_pval_two_sided
+    )
+    
     # Get some dimensions
     num_control_types = length(control_types)
     num_conditions = dim(condition_x_gene_set_pred_sum_mat)[1]
@@ -70,7 +78,7 @@ compute_per_gene_set_pvals_zscores = function(condition_x_gene_set_pred_sum_mat,
             
             cat(sprintf('computing %s-derived per-gene-set pval for gene set %s/%s\r', control_types[i], j, num_gene_sets))
             # message(sprintf('computing %s-derived per-gene-set pval for gene set %s/%s', control_types[i], j, num_gene_sets))
-            per_gene_set_pval_mats_by_control[[i]][, j] = empirical_pval_greater(condition_x_gene_set_pred_sum_mat[, j],
+            per_gene_set_pval_mats_by_control[[i]][, j] = empirical_pval_fn(condition_x_gene_set_pred_sum_mat[, j],
                                                                             control_condition_x_gene_set_pred_sum_mat_list[[i]][, j])
 
         }
@@ -126,7 +134,10 @@ compute_per_gene_set_pvals_zscores = function(condition_x_gene_set_pred_sum_mat,
 
 }
 
-compute_per_condition_pvals_zscores_2 = function(condition_x_gene_score_mat, condition_x_gene_set_sum_mat, gene_set_mat, num_per_cond_rand, gene_set_sizes, condition_x_gene_score_means, condition_x_gene_score_stdevs, seed) {
+compute_per_condition_pvals_zscores_2 = function(condition_x_gene_score_mat, condition_x_gene_set_sum_mat, gene_set_mat, num_per_cond_rand, gene_set_sizes, condition_x_gene_score_means, condition_x_gene_score_stdevs, seed, alternative = c('greater', 'less', 'two-sided')) {
+    
+    # determine which direction of effect to detect
+    alternative = match.arg(alternative)
     
     # Get some dimensions
     num_conditions = dim(condition_x_gene_set_sum_mat)[1]
@@ -184,8 +195,13 @@ compute_per_condition_pvals_zscores_2 = function(condition_x_gene_score_mat, con
 
     }
     cat('\n\n')
-   
-    per_condition_pval_mat = rand_beats_real_count_mat / num_per_cond_rand
+    
+    per_condition_pval_mat = switch(
+        alternative,
+        greater = rand_beats_real_count_mat / num_per_cond_rand,
+        less = 1 - rand_beats_real_count_mat / num_per_cond_rand,
+        `two-sided` = 2 * pmin(rand_beats_real_count_mat / num_per_cond_rand)
+    )
 
     ##### Z-SCORES #####
     # Preallocate the output z-score matrix
@@ -213,17 +229,26 @@ compute_per_condition_pvals_zscores_2 = function(condition_x_gene_score_mat, con
 # Define a function to extract the worst p value (or z score, if the
 # p values match) between the two different control types (dmso and
 # randomized drugs)
-get_worst_case_pval_zscore <- function(scheme1_pval_mat, scheme1_zscore_mat, scheme2_pval_mat, scheme2_zscore_mat, scheme1_name, scheme2_name) {
+get_worst_case_pval_zscore <- function(scheme1_pval_mat, scheme1_zscore_mat, scheme2_pval_mat, scheme2_zscore_mat, scheme1_name, scheme2_name, alternative = c('greater', 'less', 'two-sided')) {
 
+    alternative = match.arg(alternative)
+    
+    zscore_compare_fn <- switch(
+        alternative,
+        greater = `>`,
+        less = `<`,
+        `two-sided` = function(x,y) abs(x) > abs(y)
+    )
+    
     # Get sets of indices corresponding to where I should select
-    # the scheme1 control-derived result vs the scheme2omized drug-derived
+    # the scheme1 control-derived result vs the scheme2 drug-derived
     # result
     scheme1_beats_scheme2_pval <- scheme1_pval_mat < scheme2_pval_mat
-    scheme2_beats_scheme1_pval <- scheme1_pval_mat > scheme2_pval_mat
+    scheme2_beats_scheme1_pval <- scheme2_pval_mat < scheme1_pval_mat
     scheme1_equal_scheme2_pval <- scheme1_pval_mat == scheme2_pval_mat
 
-    scheme1_beats_scheme2_zscore <- scheme1_zscore_mat > scheme2_zscore_mat
-    scheme2_beats_scheme1_zscore <- scheme1_zscore_mat < scheme2_zscore_mat
+    scheme1_beats_scheme2_zscore <- zscore_compare_fn(scheme1_zscore_mat, scheme2_zscore_mat)
+    scheme2_beats_scheme1_zscore <- zscore_compare_fn(scheme2_zscore_mat, scheme1_zscore_mat)
     scheme1_equal_scheme2_zscore <- scheme1_zscore_mat == scheme2_zscore_mat
 
     pick_scheme1_indices <- scheme2_beats_scheme1_pval | (scheme1_equal_scheme2_pval & scheme2_beats_scheme1_zscore)
