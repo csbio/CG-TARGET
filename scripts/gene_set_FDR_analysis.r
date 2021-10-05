@@ -76,6 +76,7 @@ gene_set_prediction_filename_v2 = get_gene_set_target_prediction_filename_v2(
                    config_params$Required_arguments$gene_set_name,
                    config_params$Required_arguments$min_term_size,
                    config_params$Required_arguments$max_term_size,
+		   config_params$Required_arguments$alternative,
                    opt$test_run
                    )
 if (file.exists(gene_set_prediction_filename_v2)) {
