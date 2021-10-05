@@ -200,7 +200,7 @@ compute_per_condition_pvals_zscores_2 = function(condition_x_gene_score_mat, con
         alternative,
         greater = rand_beats_real_count_mat / num_per_cond_rand,
         less = 1 - rand_beats_real_count_mat / num_per_cond_rand,
-        `two-sided` = 2 * pmin(rand_beats_real_count_mat / num_per_cond_rand)
+        `two-sided` = 2 * pmin(rand_beats_real_count_mat / num_per_cond_rand, 1 - rand_beats_real_count_mat / num_per_cond_rand)
     )
 
     ##### Z-SCORES #####
